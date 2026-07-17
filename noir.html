@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Noir – Orbin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #f0f0f0;
+            line-height: 1.6;
+            background-color: #0a0a0a;
+            background-image: radial-gradient(circle at 20% 50%, rgba(139, 111, 71, 0.05) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 80%, rgba(139, 111, 71, 0.05) 0%, transparent 50%);
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: rgba(10, 10, 10, 0.8);
+            border-bottom: 1px solid rgba(139, 111, 71, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        nav .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #e0c097;
+            transition: all 0.3s;
+        }
+
+        nav .logo svg {
+            width: 32px;
+            height: 32px;
+            transition: transform 0.3s;
+        }
+
+        nav .logo:hover svg {
+            transform: rotate(20deg);
+        }
+
+        nav .logo span {
+            font-family: 'Fraunces', serif;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 3rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #f0f0f0;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #e0c097, #8b6f47);
+            transition: width 0.3s;
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        nav a:hover {
+            color: #e0c097;
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Section - BIG & BOLD */
+        .hero {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(139, 111, 71, 0.1) 0%, rgba(139, 111, 71, 0.05) 100%);
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+        }
+
+        .hero-content h1 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
+            color: #e0c097;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: #bbb;
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        /* Services Grid - Bento Style */
+        .services-section {
+            padding: 6rem 0;
+            margin: 4rem 0;
+        }
+
+        .services-section h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .services-tag {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #e0c097;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .service-item {
+            padding: 2.5rem;
+            background: linear-gradient(135deg, rgba(224, 192, 151, 0.05) 0%, rgba(224, 192, 151, 0.02) 100%);
+            border: 1px solid rgba(224, 192, 151, 0.15);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(224, 192, 151, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .service-item:hover {
+            border-color: #e0c097;
+            background: linear-gradient(135deg, rgba(224, 192, 151, 0.1) 0%, rgba(224, 192, 151, 0.05) 100%);
+            transform: translateY(-10px);
+        }
+
+        .service-item:hover::before {
+            top: -25%;
+            right: -25%;
+        }
+
+        .service-item h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #e0c097;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .service-item p {
+            color: #aaa;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.8) 0%, rgba(30, 30, 30, 0.8) 100%);
+            border-radius: 16px;
+            margin: 4rem 0;
+            border: 1px solid rgba(224, 192, 151, 0.1);
+        }
+
+        .features-section h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            min-width: 50px;
+        }
+
+        .feature-text h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.2rem;
+            color: #e0c097;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-text p {
+            color: #999;
+            font-size: 0.95rem;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 4rem 2rem;
+            text-align: center;
+            margin: 6rem 0 4rem;
+        }
+
+        .cta-section h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .cta-section p {
+            font-size: 1.1rem;
+            color: #bbb;
+            margin-bottom: 2rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: #e0c097;
+            color: #0a0a0a;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.3s;
+            margin-right: 1rem;
+        }
+
+        .back-link:hover {
+            background-color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(224, 192, 151, 0.3);
+        }
+
+        .contact-link {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: transparent;
+            color: #e0c097;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 4px;
+            border: 2px solid #e0c097;
+            transition: all 0.3s;
+        }
+
+        .contact-link:hover {
+            background-color: #e0c097;
+            color: #0a0a0a;
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        footer {
+            background-color: #0a0a0a;
+            color: #888;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+            border-top: 1px solid rgba(224, 192, 151, 0.1);
+        }
+
+        footer p {
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                gap: 1.5rem;
+            }
+
+            nav a {
+                font-size: 0.9rem;
+            }
+
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            main {
+                padding: 0 1.5rem;
+            }
+
+            .services-section,
+            .features-section,
+            .cta-section {
+                padding: 3rem 1.5rem;
+            }
+
+            .back-link,
+            .contact-link {
+                display: block;
+                margin-bottom: 1rem;
+                margin-right: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .hero-content h1 {
+                font-size: 1.8rem;
+            }
+
+            main {
+                padding: 0 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="logo">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="18" cy="18" r="13" stroke="#e0c097" stroke-width="2.5"/>
+                    <circle cx="18" cy="6" r="2.5" fill="#e0c097"/>
+                </svg>
+                <span>Orbin</span>
+            </a>
+            <ul>
+                <li><a href="index.html">Start</a></li>
+                <li><a href="ueber.html">Über</a></li>
+                <li><a href="portfolio.html">Portfolio</a></li>
+                <li><a href="kontakt.html">Kontakt</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <div class="hero-subtitle">Digital Agency</div>
+                <h1>Studio Noir</h1>
+                <p>Moderne Websites für Unternehmen, die es ernst meinen. Bold Design. Clean Code. Starke Ergebnisse.</p>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section class="services-section">
+            <div class="services-tag">Was wir machen</div>
+            <h2>Services</h2>
+            <div class="services-grid">
+                <div class="service-item">
+                    <h3>🎨 Design</h3>
+                    <p>Modernes, mutige Designs, die dein Brand zum Leben bringen und Aufmerksamkeit erregen.</p>
+                </div>
+                <div class="service-item">
+                    <h3>💻 Entwicklung</h3>
+                    <p>Sauberer, schneller Code. Responsive Websites, die auf allen Geräten perfekt funktionieren.</p>
+                </div>
+                <div class="service-item">
+                    <h3>📊 Strategie</h3>
+                    <p>Zuerst verstehen wir dein Business. Dann bauen wir eine Website, die resultiert bringt.</p>
+                </div>
+                <div class="service-item">
+                    <h3>⚡ Performance</h3>
+                    <p>Schnelle Ladezeiten, SEO-optimiert, 100% Lighthouse Scores. Nicht nur schön, auch schnell.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features-section">
+            <h2>Warum Studio Noir?</h2>
+            <div class="features-list">
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <div class="feature-text">
+                        <h3>Fokussiert</h3>
+                        <p>Wir konzentrieren uns auf Details, die zählen.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <div class="feature-text">
+                        <h3>Modern</h3>
+                        <p>Neueste Technologien und Best Practices.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <div class="feature-text">
+                        <h3>Transparent</h3>
+                        <p>Klare Kommunikation von Anfang bis Ende.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✓</div>
+                    <div class="feature-text">
+                        <h3>Zuverlässig</h3>
+                        <p>Termingerecht, zuverlässig, sauber.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <h2>Dein Projekt verdient besser</h2>
+            <p>Lass Studio Noir eine großartige Website für dein Business bauen.</p>
+            <a href="portfolio.html" class="back-link">← Zurück zum Portfolio</a>
+            <a href="kontakt.html" class="contact-link">Jetzt anfragen</a>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Orbin – Studio Noir. Alle Rechte vorbehalten.</p>
+    </footer>
+</body>
+</html>

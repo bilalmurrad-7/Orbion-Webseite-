@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbin – Web Designer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1a1a1a;
+            line-height: 1.6;
+            background-color: #ffffff;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        nav .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #8b6f47;
+            transition: all 0.3s;
+        }
+
+        nav .logo svg {
+            width: 32px;
+            height: 32px;
+            transition: transform 0.3s;
+        }
+
+        nav .logo:hover svg {
+            transform: rotate(20deg);
+        }
+
+        nav .logo span {
+            font-family: 'Fraunces', serif;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 3rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #1a1a1a;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #8b6f47;
+        }
+
+        /* Hero Section - Ruhiger, moderner */
+        .hero {
+            min-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, #ffffff 0%, #f5f3f0 100%);
+            padding: 4rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(139, 111, 71, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            50% { transform: translateY(-40px) translateX(20px); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .hero-content h1 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-content p {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: #555;
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            z-index: 2;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        /* Über Mich Section */
+        .about-section {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .about-content h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-content p {
+            font-size: 1.05rem;
+            color: #555;
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+        }
+
+        .about-visual {
+            height: 400px;
+            background: linear-gradient(135deg, #f0e6d2 0%, #dcccc0 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fraunces', serif;
+            font-size: 1.3rem;
+            color: #8b6f47;
+            font-weight: 700;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+
+        .highlight {
+            color: #8b6f47;
+            font-weight: 600;
+        }
+
+        /* Portfolio Teaser */
+        .portfolio-teaser {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            background-color: #f9f7f4;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .portfolio-teaser h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1rem;
+        }
+
+        .portfolio-teaser p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .portfolio-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f5f3f0 100%);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .portfolio-card:hover {
+            border-color: #8b6f47;
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(139, 111, 71, 0.12);
+        }
+
+        .portfolio-icon {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #8b6f47;
+        }
+
+        .portfolio-card h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.3rem;
+            color: #1a1a1a;
+        }
+
+        .portfolio-card p {
+            font-size: 0.95rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background-color: #8b6f47;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .cta-button:hover {
+            background-color: #1a1a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* CTA Section */
+        .cta-final {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+            border-radius: 12px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .cta-final h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-final p {
+            font-size: 1.1rem;
+            color: #ddd;
+            margin-bottom: 2rem;
+        }
+
+        .cta-button-white {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background-color: #8b6f47;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .cta-button-white:hover {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            padding: 4rem 2rem 2rem;
+            margin-top: 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #8b6f47;
+        }
+
+        .footer-section p {
+            color: #bbb;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: #8b6f47;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: #ffffff;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background-color: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b6f47;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+
+        .social-links a:hover {
+            background-color: #8b6f47;
+            color: #1a1a1a;
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 2rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                gap: 1.5rem;
+            }
+
+            nav a {
+                font-size: 0.9rem;
+            }
+
+            .about-section {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .about-visual {
+                height: 300px;
+            }
+
+            .portfolio-teaser,
+            .cta-final {
+                padding: 3rem 1.5rem;
+            }
+
+            .scroll-indicator {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="logo">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="18" cy="18" r="13" stroke="#8b6f47" stroke-width="2.5"/>
+                    <circle cx="18" cy="6" r="2.5" fill="#8b6f47"/>
+                </svg>
+                <span>Orbin</span>
+            </a>
+            <ul>
+                <li><a href="index.html">Start</a></li>
+                <li><a href="ueber.html">Über</a></li>
+                <li><a href="portfolio.html">Portfolio</a></li>
+                <li><a href="kontakt.html">Kontakt</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Web Design, das begeistert</h1>
+                <p>Ich baue moderne, professionelle Websites. Schnell, sauber und fokussiert auf Dein Business.</p>
+            </div>
+            <div class="scroll-indicator">↓</div>
+        </section>
+
+        <!-- Über Mich Section -->
+        <section class="about-section">
+            <div class="about-visual"></div>
+            <div class="about-content">
+                <h2>Über mich</h2>
+                <p>
+                    Ich bin <span class="highlight">Bilal</span>, 14 Jahre alt aus Hoyerswerda. Meine Passion liegt in
+                    der Gestaltung von Websites, die nicht nur schön aussehen, sondern auch funktionieren.
+                </p>
+                <p>
+                    Mit <span class="highlight">modernem Design</span> und sauberer Technik baue ich digitale Lösungen,
+                    die Menschen begeistern und Geschäfte voranbringen.
+                </p>
+                <a href="ueber.html" class="cta-button">Mehr über mich</a>
+            </div>
+        </section>
+
+        <!-- Portfolio Teaser -->
+        <section class="portfolio-teaser">
+            <h2>Meine Arbeiten</h2>
+            <p>Hier sind zwei Projekte, an denen ich arbeite:</p>
+            <div class="portfolio-grid">
+                <a href="atelier.html" class="portfolio-card">
+                    <div class="portfolio-icon">✨</div>
+                    <h3>Studio Atelier</h3>
+                    <p>Elegantes, minimalistisches Design</p>
+                </a>
+                <a href="noir.html" class="portfolio-card">
+                    <div class="portfolio-icon">🌙</div>
+                    <h3>Studio Noir</h3>
+                    <p>Modern, kühn, editorial</p>
+                </a>
+            </div>
+            <a href="portfolio.html" class="cta-button" style="margin-top: 2rem;">Alle Projekte sehen</a>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-final">
+            <h2>Lass uns dein nächstes Projekt angehen</h2>
+            <p>Du brauchst eine professionelle Website? Lass mich dir helfen.</p>
+            <a href="kontakt.html" class="cta-button-white">Jetzt Kontakt aufnehmen</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Orbin</h3>
+                <p>Moderne Websites für moderne Geschäfte.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Schnelllinks</h3>
+                <p><a href="ueber.html">Über mich</a></p>
+                <p><a href="portfolio.html">Portfolio</a></p>
+                <p><a href="kontakt.html">Kontakt</a></p>
+            </div>
+            <div class="footer-section">
+                <h3>Kontakt</h3>
+                <p><a href="mailto:orbion.web@gmail.com">orbion.web@gmail.com</a></p>
+                <div class="social-links">
+                    <a href="https://instagram.com" target="_blank" title="Instagram">📷</a>
+                    <a href="https://facebook.com" target="_blank" title="Facebook">👍</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Orbin – Web Design. Alle Rechte vorbehalten.</p>
+        </div>
+    </footer>
+</body>
+</html>
