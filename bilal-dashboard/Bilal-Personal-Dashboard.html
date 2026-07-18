@@ -580,6 +580,7 @@
                   <option value="trebuchet">Trebuchet (weich)</option>
                   <option value="mono">Mono (technisch)</option>
                 </select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Netzwerk-Farbe</div><div class="set-desc">Leuchtfarbe im „Über mich"-Netzwerk</div></div><input type="color" id="setBrainColor" class="set-control" value="#f0972b" onchange="setBrainColor(this.value)"></div>
             </div>
 
             <div class="settings-section">
@@ -591,7 +592,8 @@
 
             <div class="settings-section">
               <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3zM6 12a6 6 0 0012 0M12 18v3"/></svg> Atlas Stimme</h3>
-              <div class="set-row"><div class="grow"><div class="set-label">Stimme</div></div><select id="setVoice" class="set-control" onchange="saveSettingsFromUI()"><option value="male">Männlich</option><option value="female">Weiblich</option><option value="neutral">Neutral</option><option value="robot">Roboter</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Stimm-Typ</div></div><select id="setVoice" class="set-control" onchange="saveSettingsFromUI()"><option value="male">Männlich</option><option value="female">Weiblich</option><option value="neutral">Neutral</option><option value="robot">Roboter</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Konkrete Stimme</div><div class="set-desc">Wähle eine echte Stimme deines PCs (z.B. männlich)</div></div><select id="setVoiceName" class="set-control" onchange="saveSettingsFromUI()"><option value="">Automatisch</option></select></div>
               <div class="set-row"><div class="grow"><div class="set-label">Lautstärke: <span id="volLabel">75%</span></div></div><input type="range" min="0" max="100" value="75" id="setVolume" class="set-control" oninput="volLabel.textContent=this.value+'%'" onchange="saveSettingsFromUI()"></div>
               <div class="set-row"><div class="grow"><div class="set-label">Sprechgeschwindigkeit</div></div><select id="setSpeed" class="set-control" onchange="saveSettingsFromUI()"><option value="slow">Langsam</option><option value="normal">Normal</option><option value="fast">Schnell</option></select></div>
               <div class="set-row"><div class="grow"><div class="set-label">Antworten vorlesen</div><div class="set-desc">Atlas spricht seine Antworten</div></div><div class="toggle" id="tgSpeak" onclick="toggleSetting('speakReplies', this)"></div></div>
@@ -662,8 +664,8 @@ const DEFAULT_DATA = {
     { category: 'Lieblingsfarbe', value: 'Schwarz' },
     { category: 'Lieblingsfarbe', value: 'Lila' }
   ],
-  settings: { primaryColor: '#00a97b', font: 'system', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
-    voice: 'male', volume: 75, speed: 'normal',
+  settings: { primaryColor: '#00a97b', font: 'system', brainColor: '#f0972b', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
+    voice: 'male', voiceName: '', volume: 75, speed: 'normal',
     autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal',
     apiKey: '', model: 'claude-haiku-4-5-20251001', speakReplies: true }
 };
@@ -962,106 +964,137 @@ function saveProfile() {
   save(); renderProfile(); renderAnalytics(); if (brainCanvas) buildBrain(); toast('Profil gespeichert ✔');
 }
 
-// ---------------- Big Brain Netzwerk (Obsidian-Stil) ----------------
-const BRAIN_COLORS = {
-  'Interessen': '#00c088', 'Hobbys': '#3b82f6', 'Ziele': '#a855f7',
-  'Lieblingsfarbe': '#f59e0b', 'Skills': '#06b6d4', 'Lieblingsessen': '#ec4899', 'Sonstiges': '#8a8a8a'
-};
-function catColor(cat) { return BRAIN_COLORS[cat] || '#8a8a8a'; }
-
-let brainNodes = [], brainLinks = [], brainAnim = null, brainCanvas = null, brainCtx = null, brainDrag = null, brainW = 0, brainH = 0;
+// ---------------- Big Brain Netzwerk (Glow / verschiebbare Map) ----------------
+let brainNodes = [], brainLinks = [], decoNodes = [], decoLinks = [];
+let brainAnim = null, brainCanvas = null, brainCtx = null, brainDrag = null;
+let panning = false, panStart = null, hoverNode = null, brainW = 0, brainH = 0, brainTime = 0;
+const cam = { x: 0, y: 0, scale: 1 };
+function brainColor() { return data.settings.brainColor || '#f0972b'; }
+function brainRgb() { const m = brainColor().replace('#','').match(/.{2}/g); return m ? m.map(x=>parseInt(x,16)) : [240,151,43]; }
+function W2S(x,y){ return [x*cam.scale+cam.x, y*cam.scale+cam.y]; }
+function S2W(x,y){ return [(x-cam.x)/cam.scale, (y-cam.y)/cam.scale]; }
+function buildDeco(){
+  decoNodes=[]; decoLinks=[];
+  const N=230, R=560; let seed=1337;
+  const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+  for(let i=0;i<N;i++){ const a=rnd()*Math.PI*2, r=Math.pow(rnd(),0.62)*R;
+    decoNodes.push({ x:Math.cos(a)*r, y:Math.sin(a)*r, s:0.6+rnd()*1.9, tw:rnd()*6.28, bright:rnd()<0.16 }); }
+  for(let i=0;i<N;i++){ const d=[];
+    for(let j=0;j<N;j++){ if(i===j) continue; const dx=decoNodes[i].x-decoNodes[j].x, dy=decoNodes[i].y-decoNodes[j].y; d.push([dx*dx+dy*dy,j]); }
+    d.sort((a,b)=>a[0]-b[0]); const k=2+Math.floor(rnd()*2);
+    for(let m=0;m<k;m++){ if(d[m] && d[m][0]<150*150 && i<d[m][1]) decoLinks.push([i,d[m][1]]); } }
+}
 
 function buildBrain() {
   const prev = {}; brainNodes.forEach(n => prev[n.id] = { x:n.x, y:n.y });
-  const cx = brainW/2 || 300, cy = brainH/2 || 220;
   brainNodes = []; brainLinks = [];
-  brainNodes.push({ id:'me', label:(data.profile.name||'Ich'), group:'center', r:20,
-    x:cx, y:cy, vx:0, vy:0, fixed:true });
+  brainNodes.push({ id:'me', label:(data.profile.name||'Ich'), group:'center', r:16, x:0, y:0, vx:0, vy:0, fixed:true });
   const cats = {};
   data.brain.forEach((f, idx) => {
     if (!cats[f.category]) {
-      const cid = 'cat:'+f.category; cats[f.category] = cid;
-      const p = prev[cid];
-      brainNodes.push({ id:cid, label:f.category, group:'category', cat:f.category, r:11,
-        x:p?p.x:cx+(Math.random()-.5)*180, y:p?p.y:cy+(Math.random()-.5)*180, vx:0, vy:0 });
+      const cid = 'cat:'+f.category; cats[f.category] = cid; const p = prev[cid];
+      brainNodes.push({ id:cid, label:f.category, group:'category', cat:f.category, r:9,
+        x:p?p.x:(Math.random()-.5)*180, y:p?p.y:(Math.random()-.5)*180, vx:0, vy:0 });
       brainLinks.push({ s:'me', t:cid });
     }
     const nid = 'f'+idx; const p = prev[nid];
-    brainNodes.push({ id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:7,
-      x:p?p.x:cx+(Math.random()-.5)*320, y:p?p.y:cy+(Math.random()-.5)*320, vx:0, vy:0 });
+    brainNodes.push({ id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:6,
+      x:p?p.x:(Math.random()-.5)*340, y:p?p.y:(Math.random()-.5)*340, vx:0, vy:0 });
     brainLinks.push({ s:cats[f.category], t:nid });
   });
 }
 function brainStep() {
-  const cx = brainW/2, cy = brainH/2, byId = {};
-  brainNodes.forEach(n => byId[n.id]=n);
-  for (let i=0;i<brainNodes.length;i++){
-    const a=brainNodes[i];
-    for (let j=i+1;j<brainNodes.length;j++){
-      const b=brainNodes[j];
+  const byId = {}; brainNodes.forEach(n => byId[n.id]=n);
+  for (let i=0;i<brainNodes.length;i++){ const a=brainNodes[i];
+    for (let j=i+1;j<brainNodes.length;j++){ const b=brainNodes[j];
       let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
       if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); }
-      const d=Math.sqrt(d2), f=2400/d2, fx=(dx/d)*f, fy=(dy/d)*f;
-      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
-    }
-  }
-  brainLinks.forEach(l=>{
-    const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
+      const d=Math.sqrt(d2), f=2600/d2, fx=(dx/d)*f, fy=(dy/d)*f;
+      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy; } }
+  brainLinks.forEach(l=>{ const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
     const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
-    const target=(b.group==='fact')?66:112, f=(d-target)*0.02, fx=(dx/d)*f, fy=(dy/d)*f;
-    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
-  });
+    const target=(b.group==='fact')?74:122, f=(d-target)*0.02, fx=(dx/d)*f, fy=(dy/d)*f;
+    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy; });
   brainNodes.forEach(n=>{
-    if(n.fixed){ n.x=cx; n.y=cy; n.vx=0; n.vy=0; return; }
+    if(n.fixed){ n.x=0; n.y=0; n.vx=0; n.vy=0; return; }
     if(n===brainDrag){ n.vx=0; n.vy=0; return; }
-    n.vx += (cx-n.x)*0.0022; n.vy += (cy-n.y)*0.0022;
-    n.vx*=0.85; n.vy*=0.85;
+    n.vx += (0-n.x)*0.003; n.vy += (0-n.y)*0.003;
+    n.vx*=0.86; n.vy*=0.86;
     n.x += Math.max(-18,Math.min(18,n.vx)); n.y += Math.max(-18,Math.min(18,n.vy));
-    n.x = Math.max(n.r+2, Math.min(brainW-n.r-2, n.x));
-    n.y = Math.max(n.r+2, Math.min(brainH-n.r-2, n.y));
   });
 }
+function brainRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function brainDraw() {
   const ctx=brainCtx; if(!ctx) return;
+  brainTime+=0.016;
   ctx.clearRect(0,0,brainW,brainH);
+  const rgb=brainRgb(), cc=rgb[0]+','+rgb[1]+','+rgb[2];
+  // Deko-Linien
+  ctx.lineWidth=1; ctx.strokeStyle='rgba('+cc+',0.06)';
+  decoLinks.forEach(l=>{ const a=decoNodes[l[0]], b=decoNodes[l[1]], pa=W2S(a.x,a.y), pb=W2S(b.x,b.y);
+    ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); });
+  // Deko-Partikel (leuchten & funkeln)
+  decoNodes.forEach(n=>{ const p=W2S(n.x,n.y), tw=0.5+0.5*Math.sin(brainTime*1.5+n.tw);
+    const r=Math.max(0.5,n.s*cam.scale*(n.bright?1.7:1));
+    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,6.2832);
+    ctx.fillStyle = n.bright ? 'rgba(255,240,220,'+(0.5+0.4*tw)+')' : 'rgba('+cc+','+(0.22+0.4*tw)+')';
+    ctx.shadowColor='rgba('+cc+',0.85)'; ctx.shadowBlur=n.bright?11:5; ctx.fill(); ctx.shadowBlur=0; });
+  // echte Verbindungen
   const byId={}; brainNodes.forEach(n=>byId[n.id]=n);
-  ctx.lineWidth=1;
   brainLinks.forEach(l=>{ const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
-    ctx.strokeStyle='rgba(255,255,255,0.11)'; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); });
-  brainNodes.forEach(n=>{
-    const col = n.group==='center' ? '#ffffff' : n.group==='category' ? '#c9cdd2' : catColor(n.cat);
-    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
-    ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=(n.group==='fact')?7:13; ctx.fill(); ctx.shadowBlur=0;
-    ctx.fillStyle = n.group==='fact' ? 'rgba(230,232,234,0.82)' : '#ffffff';
-    ctx.font = (n.group==='center'?'600 13px':(n.group==='category'?'600 12px':'11px'))+" -apple-system, 'Segoe UI', sans-serif";
-    ctx.textAlign='center'; ctx.textBaseline='top';
-    ctx.fillText(n.label, n.x, n.y+n.r+3);
-  });
+    const pa=W2S(a.x,a.y), pb=W2S(b.x,b.y), hot=hoverNode&&(hoverNode===a||hoverNode===b);
+    ctx.strokeStyle=hot?'rgba(255,235,210,0.55)':'rgba('+cc+',0.3)'; ctx.lineWidth=hot?1.7:1.1;
+    ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); });
+  // echte Knoten (hell leuchtend)
+  brainNodes.forEach(n=>{ const p=W2S(n.x,n.y), r=Math.max(2,n.r*cam.scale);
+    let fill, glow;
+    if(n.group==='center'){ fill='#fff6e9'; glow=24; }
+    else if(n.group==='category'){ fill='rgb('+Math.min(255,rgb[0]+55)+','+Math.min(255,rgb[1]+55)+','+Math.min(255,rgb[2]+45)+')'; glow=17; }
+    else { fill='rgb('+cc+')'; glow=12; }
+    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,6.2832);
+    ctx.fillStyle=fill; ctx.shadowColor='rgba('+cc+',1)'; ctx.shadowBlur=glow*(hoverNode===n?1.7:1); ctx.fill(); ctx.shadowBlur=0; });
+  // Label nur beim Hover
+  if(hoverNode){ const p=W2S(hoverNode.x,hoverNode.y), txt=hoverNode.label;
+    ctx.font="600 13px -apple-system,'Segoe UI',sans-serif";
+    const w=ctx.measureText(txt).width, bx=p[0]-w/2-9, by=p[1]-hoverNode.r*cam.scale-32;
+    ctx.fillStyle='rgba(14,16,19,0.94)'; ctx.strokeStyle='rgba('+cc+',0.65)'; ctx.lineWidth=1;
+    brainRoundRect(ctx,bx,by,w+18,25,7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,p[0],by+12.5); }
 }
 function brainLoop(){ brainStep(); brainDraw(); brainAnim=requestAnimationFrame(brainLoop); }
 function stopBrain(){ if(brainAnim){ cancelAnimationFrame(brainAnim); brainAnim=null; } }
 function resizeBrain(){
   if(!brainCanvas) return;
-  const rect=brainCanvas.getBoundingClientRect();
-  const dpr=window.devicePixelRatio||1;
+  const rect=brainCanvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
   brainW=rect.width; brainH=rect.height;
   brainCanvas.width=Math.round(brainW*dpr); brainCanvas.height=Math.round(brainH*dpr);
   brainCtx.setTransform(dpr,0,0,dpr,0,0);
+  cam.x=brainW/2; cam.y=brainH/2;
 }
-function brainMouse(e){ const r=brainCanvas.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
-function brainNodeAt(x,y){ for(let i=brainNodes.length-1;i>=0;i--){ const n=brainNodes[i], dx=x-n.x, dy=y-n.y; if(dx*dx+dy*dy<=(n.r+5)*(n.r+5)) return n; } return null; }
+function brainPos(e){ const r=brainCanvas.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
+function brainNodeAtScreen(sx,sy){ const w=S2W(sx,sy);
+  for(let i=brainNodes.length-1;i>=0;i--){ const n=brainNodes[i], dx=w[0]-n.x, dy=w[1]-n.y, rr=n.r+7; if(dx*dx+dy*dy<=rr*rr) return n; } return null; }
 function initBrainEvents(){
   if(brainCanvas._bound) return; brainCanvas._bound=true;
-  brainCanvas.addEventListener('mousedown', e=>{ const m=brainMouse(e), n=brainNodeAt(m.x,m.y); if(n && !n.fixed) brainDrag=n; });
-  window.addEventListener('mousemove', e=>{ if(brainDrag){ const m=brainMouse(e); brainDrag.x=m.x; brainDrag.y=m.y; } });
-  window.addEventListener('mouseup', ()=>{ brainDrag=null; });
-  brainCanvas.addEventListener('dblclick', e=>{ const m=brainMouse(e), n=brainNodeAt(m.x,m.y);
+  brainCanvas.addEventListener('mousedown', e=>{ const p=brainPos(e), n=brainNodeAtScreen(p[0],p[1]);
+    if(n && !n.fixed){ brainDrag=n; } else { panning=true; panStart=[p[0],p[1],cam.x,cam.y]; brainCanvas.style.cursor='grabbing'; } });
+  window.addEventListener('mousemove', e=>{ if(!brainAnim || !brainCanvas) return; const p=brainPos(e);
+    if(brainDrag){ const w=S2W(p[0],p[1]); brainDrag.x=w[0]; brainDrag.y=w[1]; brainDrag.vx=0; brainDrag.vy=0; }
+    else if(panning){ cam.x=panStart[2]+(p[0]-panStart[0]); cam.y=panStart[3]+(p[1]-panStart[1]); }
+    else { hoverNode=brainNodeAtScreen(p[0],p[1]); brainCanvas.style.cursor=hoverNode?'grab':'default'; } });
+  window.addEventListener('mouseup', ()=>{ brainDrag=null; panning=false; if(brainCanvas) brainCanvas.style.cursor=hoverNode?'grab':'default'; });
+  brainCanvas.addEventListener('wheel', e=>{ e.preventDefault(); const p=brainPos(e), w=S2W(p[0],p[1]);
+    cam.scale=Math.max(0.3,Math.min(3.5, cam.scale*(e.deltaY<0?1.12:0.89)));
+    cam.x=p[0]-w[0]*cam.scale; cam.y=p[1]-w[1]*cam.scale; }, {passive:false});
+  brainCanvas.addEventListener('dblclick', e=>{ const p=brainPos(e), n=brainNodeAtScreen(p[0],p[1]);
     if(n && n.group==='fact' && confirm('Knoten „'+n.label+'" löschen?')) delFact(n.factIndex); });
 }
 function renderBrain(){
   brainCanvas=document.getElementById('brainCanvas'); if(!brainCanvas) return;
   brainCtx=brainCanvas.getContext('2d');
-  resizeBrain(); initBrainEvents(); buildBrain();
+  resizeBrain(); initBrainEvents();
+  if(!decoNodes.length) buildDeco();
+  buildBrain();
   if(!brainAnim) brainLoop();
 }
 function addFactFromUI(){
@@ -1323,7 +1356,14 @@ function startListening(auto) {
   recog.lang = 'de-DE'; recog.interimResults = false; recog.maxAlternatives = 1;
   listening = true; setMicUI(true);
   recog.onresult = ev => { document.getElementById('atlasInput').value = ev.results[0][0].transcript; };
-  recog.onerror = () => {};
+  recog.onerror = ev => {
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      liveMode = false; const lb = document.getElementById('liveBtn'); if (lb) { lb.classList.remove('btn-primary'); lb.classList.add('btn-secondary'); lb.textContent = '🎙 Live-Gespräch starten'; }
+      toast('Mikrofon blockiert. Bei lokal geöffneten Dateien (file://) erlauben Browser das Mikro oft nicht — dafür müsste die Seite über https laufen.');
+    } else if (ev.error === 'network') {
+      toast('Sprachdienst nicht erreichbar (braucht Internet, oft nur über https).');
+    }
+  };
   recog.onend = () => {
     listening = false; setMicUI(false);
     const t = document.getElementById('atlasInput').value.trim();
@@ -1335,12 +1375,13 @@ function startListening(auto) {
 
 function pickVoice() {
   const voices = speechSynthesis.getVoices();
+  if (data.settings.voiceName) { const v = voices.find(x => x.name === data.settings.voiceName); if (v) return v; }
   const de = voices.filter(v => /de[-_]/i.test(v.lang));
   const pool = de.length ? de : voices;
   if (!pool.length) return null;
   const pref = data.settings.voice;
-  const male = /(male|männ|stefan|conrad|hans|markus|klaus|bernd|viktor|daniel|yannick)/i;
-  const female = /(female|weib|katja|hedda|marlene|petra|anna|vicki|google deutsch)/i;
+  const male = /(male|männ|stefan|conrad|hans|markus|klaus|bernd|viktor|daniel|florian|yannick)/i;
+  const female = /(female|weib|katja|hedda|marlene|petra|anna|vicki)/i;
   let v;
   if (pref === 'male') v = pool.find(x => male.test(x.name));
   else if (pref === 'female') v = pool.find(x => female.test(x.name));
@@ -1354,7 +1395,7 @@ function speak(text) {
     const u = new SpeechSynthesisUtterance(String(text).replace(/[*_`#>\[\]✅⚠️🚀]/g, ''));
     u.lang = 'de-DE';
     u.rate = { slow: 0.85, normal: 1, fast: 1.25 }[data.settings.speed] || 1;
-    u.pitch = { male: 0.7, female: 1.3, robot: 0.4, neutral: 1 }[data.settings.voice] || 1;
+    u.pitch = { male: 0.6, female: 1.3, robot: 0.4, neutral: 1 }[data.settings.voice] || 1;
     u.volume = (data.settings.volume != null ? data.settings.volume : 75) / 100;
     const v = pickVoice(); if (v) u.voice = v;
     u.onend = () => { if (liveMode) startListening(true); };
@@ -1429,6 +1470,17 @@ document.querySelector('.color-picker').addEventListener('click', e => {
   const o = e.target.closest('.color-option'); if (o) setPrimary(o.dataset.color);
 });
 function toggleSetting(key, el) { el.classList.toggle('active'); data.settings[key] = el.classList.contains('active'); save(); }
+function setBrainColor(v) { data.settings.brainColor = v; save(); }
+function populateVoices() {
+  const sel = document.getElementById('setVoiceName');
+  if (!sel || !('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  const de = voices.filter(v => /de[-_]/i.test(v.lang));
+  const list = de.length ? de : voices;
+  sel.innerHTML = '<option value="">Automatisch (nach Typ)</option>' +
+    list.map(v => `<option value="${esc(v.name)}">${esc(v.name)}${/de[-_]/i.test(v.lang)?'':' — '+v.lang}</option>`).join('');
+  sel.value = data.settings.voiceName || '';
+}
 function saveSettingsFromUI() {
   const s = data.settings;
   s.font = document.getElementById('setFont').value;
@@ -1437,6 +1489,7 @@ function saveSettingsFromUI() {
   s.currency = document.getElementById('setCurrency').value;
   s.timezone = document.getElementById('setTz').value;
   s.voice = document.getElementById('setVoice').value;
+  s.voiceName = document.getElementById('setVoiceName').value;
   s.volume = parseInt(document.getElementById('setVolume').value);
   s.speed = document.getElementById('setSpeed').value;
   s.mode = document.getElementById('setMode').value;
@@ -1455,10 +1508,12 @@ function saveApiKey() {
 function renderSettings() {
   const s = data.settings;
   document.getElementById('setFont').value = s.font || 'system';
+  document.getElementById('setBrainColor').value = s.brainColor || '#f0972b';
   document.getElementById('setLang').value = s.language;
   document.getElementById('setCurrency').value = s.currency;
   document.getElementById('setTz').value = s.timezone;
   document.getElementById('setVoice').value = s.voice;
+  populateVoices();
   document.getElementById('setVolume').value = s.volume;
   document.getElementById('volLabel').textContent = s.volume + '%';
   document.getElementById('setSpeed').value = s.speed;
@@ -1626,7 +1681,7 @@ initLock();
 renderAnalytics();
 updateAtlasStatus();
 renderChat();
-if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }
+if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); populateVoices(); }; }
 </script>
 </body>
 </html>
