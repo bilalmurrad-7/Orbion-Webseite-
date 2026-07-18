@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Brain — Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #16181b;
+    --surface: #1e2126;
+    --surface-2: #24282e;
+    --sidebar: #131519;
+    --border: #2b2f36;
+    --border-strong: #3a3f47;
+    --text: #e6e8ea;
+    --text-sub: #a3a9b0;
+    --text-dim: #767c84;
+    --primary: #00a97b;
+    --primary-rgb: 0, 169, 123;
+    --accent: #3b82f6;
+    --danger: #f26d6d;
+    --danger-rgb: 242, 109, 109;
+    --pos-bg: rgba(0,169,123,.16); --pos-text: #3dd0a4;
+    --neg-bg: rgba(242,109,109,.15); --neg-text: #f28b8b;
+    --neu-bg: rgba(255,255,255,.07); --neu-text: #b6bcc3;
+    --warn-bg: rgba(226,179,74,.16); --warn-text: #e2b34a;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif);
+    background: var(--bg); color: var(--text);
+    font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 240px; flex-shrink: 0; background: var(--sidebar);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 14px 12px; gap: 2px; overflow-y: auto;
+  }
+  .nav-sep { height: 1px; background: var(--border); margin: 10px 8px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 16px; font-weight: 650; font-size: 16px; }
+  .brand .mark {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--primary), #00694f);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 15px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: 8px;
+    color: var(--text-sub); cursor: pointer; font-weight: 500; font-size: 13.5px;
+    transition: background .12s ease, color .12s ease; user-select: none;
+  }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .nav-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .nav-item.active { background: rgba(var(--primary-rgb), .14); color: var(--primary); font-weight: 650; }
+  .sidebar-foot { margin-top: auto; border-top: 1px solid var(--border); padding-top: 8px; }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    height: 56px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; padding: 0 20px; flex-shrink: 0;
+  }
+  .mobile-menu { display: none; }
+  .topbar-title { font-size: 15px; font-weight: 650; }
+  .spacer { flex: 1; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--border-strong); color: var(--text-sub); cursor: pointer; transition: all .12s;
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .icon-btn.listening { background: rgba(var(--danger-rgb),.2); border-color: var(--danger); color: var(--danger); animation: pulse 1s infinite; }
+  .avatar { width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-weight: 650; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .page { max-width: 1060px; margin: 0 auto; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+  .page-title { font-size: 21px; font-weight: 700; letter-spacing: -.2px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit;
+    transition: background .12s ease, border-color .12s ease, transform .1s ease;
+  }
+  .btn svg { width: 16px; height: 16px; }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--primary); color: #04120d; }
+  .btn-primary:hover { background: var(--primary-strong, #00c088); }
+  .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+  .btn-secondary:hover { border-color: var(--text-dim); }
+  .btn-danger { background: transparent; color: var(--danger); border-color: rgba(var(--danger-rgb),.4); }
+  .btn-danger:hover { background: rgba(var(--danger-rgb),.12); }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* Cards & grid */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: repeat(3,1fr); }
+  .grid-4 { grid-template-columns: repeat(4,1fr); }
+  .grid-auto { grid-template-columns: repeat(auto-fill, minmax(250px,1fr)); }
+  .stack > * + * { margin-top: 14px; }
+  @media (max-width: 940px) { .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 620px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  .metric-label { font-size: 13px; color: var(--text-sub); font-weight: 500; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 700; letter-spacing: -.4px; }
+  .metric-foot { margin-top: 8px; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-sub); flex-wrap: wrap; }
+
+  .card-title { font-size: 15px; font-weight: 650; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+  .card-sub { font-size: 12.5px; color: var(--text-sub); margin-bottom: 14px; }
+  .section-ico { color: var(--primary); display: inline-flex; }
+  .section-ico svg { width: 17px; height: 17px; }
+
+  /* Delta / trend */
+  .delta, .trend { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; font-size: 12.5px; }
+  .delta svg, .trend svg { width: 13px; height: 13px; }
+  .delta.up, .trend.up { color: var(--pos-text); }
+  .delta.down, .trend.down { color: var(--neg-text); }
+  .trend { padding: 2px 9px; border-radius: 20px; }
+  .trend.up { background: var(--pos-bg); }
+  .trend.down { background: var(--neg-bg); }
+  .trend.flat, .trend.neu { color: var(--neu-text); background: var(--neu-bg); }
+
+  /* Chart */
+  .chart { display: flex; align-items: flex-end; gap: 16px; height: 190px; padding-top: 10px; overflow-x: auto; }
+  .chart.empty { align-items: center; justify-content: center; color: var(--text-dim); font-size: 13px; height: 150px; }
+  .bar-wrap { flex: 1; min-width: 46px; display: flex; flex-direction: column; align-items: center; gap: 7px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; max-width: 52px; border-radius: 6px 6px 0 0; background: var(--primary); min-height: 4px; transition: opacity .15s; }
+  .bar:hover { opacity: .82; }
+  .bar-val { font-size: 12.5px; font-weight: 600; }
+  .bar-name { font-size: 11.5px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 64px; }
+
+  /* Tables */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-head { padding: 16px 18px 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text-sub); padding: 10px 16px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  thead th:last-child { text-align: right; }
+  tbody td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.02); }
+  td.num, td.right { text-align: right; font-variant-numeric: tabular-nums; }
+  .cell-title { font-weight: 600; }
+  .cell-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .badge.pos, .badge.badge-green { background: var(--pos-bg); color: var(--pos-text); }
+  .badge.neu, .badge.badge-blue { background: var(--neu-bg); color: var(--neu-text); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn-text); }
+
+  /* Progress */
+  .progress-track { background: rgba(255,255,255,.08); height: 8px; border-radius: 4px; overflow: hidden; }
+  .progress-fill { background: var(--primary); height: 100%; transition: width .4s ease; }
+
+  /* Inputs */
+  input, textarea, select {
+    width: 100%; padding: 10px 12px; background: var(--surface-2);
+    border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text);
+    font-size: 13.5px; font-family: inherit; outline: none; transition: border-color .12s, box-shadow .12s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-dim); }
+  input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(var(--primary-rgb),.2); }
+  select option { background: #1e2126; }
+  label.field { display: block; font-size: 12.5px; color: var(--text-sub); margin-bottom: 6px; font-weight: 500; }
+  .form-row { display: flex; flex-direction: column; gap: 10px; }
+  .empty-hint { color: var(--text-dim); font-size: 13px; padding: 14px 16px; }
+
+  /* del button */
+  .del-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12.5px; padding: 5px 9px; border-radius: 6px; transition: all .12s; }
+  .del-btn:hover { background: rgba(255,255,255,.05); color: var(--text); }
+
+  /* legacy list-row (used in a few JS spots) */
+  .list-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 9px; margin-bottom: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+  .row-title { font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 8px; }
+  .row-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .row-amount { font-weight: 700; }
+  .stat-mini { font-size: 26px; font-weight: 700; letter-spacing: -.4px; }
+  .stat-label { font-size: 12.5px; color: var(--text-sub); }
+
+  /* Settings */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 940px) { .settings-grid { grid-template-columns: 1fr; } }
+  .settings-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .settings-section h3 { font-size: 13px; font-weight: 650; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .settings-section h3 svg { width: 16px; height: 16px; color: var(--primary); }
+  .set-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+  .set-row:last-child { border-bottom: none; }
+  .set-row .grow { flex: 1; }
+  .set-label { font-weight: 600; font-size: 13.5px; }
+  .set-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .set-control { min-width: 190px; max-width: 220px; }
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-option { width: 34px; height: 34px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: transform .12s; }
+  .color-option:hover { transform: scale(1.1); }
+  .color-option.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+  .toggle { width: 42px; height: 24px; background: #4a4f57; border-radius: 12px; cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0; }
+  .toggle.active { background: var(--primary); }
+  .toggle::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: left .2s; }
+  .toggle.active::after { left: 21px; }
+  input[type=range] { -webkit-appearance: none; height: 6px; padding: 0; background: rgba(var(--primary-rgb),.25); border: none; border-radius: 4px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
+  input[type=color] { padding: 3px; height: 42px; cursor: pointer; }
+
+  /* Chat */
+  .chat-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; height: 330px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-msg { max-width: 78%; padding: 10px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; }
+  .chat-msg.me { align-self: flex-end; background: var(--primary); color: #04120d; font-weight: 500; }
+  .chat-msg.atlas { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--border); }
+  .chat-msg.typing { color: var(--text-dim); font-style: italic; }
+  .status-line { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-sub); }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--primary); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
+    background: var(--surface); border: 1px solid var(--border-strong); color: var(--text);
+    padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 500;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 999; opacity: 0;
+    transition: all .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333940; border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: #434a52; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+  /* PIN Lock */
+  .lock { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .lock-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 34px 30px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 24px 70px rgba(0,0,0,.55); }
+  .lock-logo { width: 54px; height: 54px; border-radius: 15px; margin: 0 auto 18px; background: linear-gradient(135deg, var(--primary), #00694f); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 25px; }
+  .lock-card h2 { font-size: 19px; font-weight: 700; }
+  .lock-card > p { color: var(--text-sub); font-size: 13px; margin: 6px 0 20px; }
+  .lock-card input { text-align: center; letter-spacing: 3px; margin-bottom: 12px; }
+  .lock-err { display: none; color: var(--danger); font-size: 13px; margin: 0 0 12px; }
+  .lock-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--text-dim); margin-top: 16px; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
+
+  /* Gehirn-Netzwerk Stage + Vollbild (WebGL 3D) */
+  #brainStage { position: relative; background: #000; border-top: 1px solid var(--border); }
+  #brainStage.fs { position: fixed; inset: 0; z-index: 200; border: none; border-radius: 0; }
+  #brainStage.fs #brainCanvas { width: 100vw !important; height: 100vh !important; }
+  #brainCanvas { display: block; width: 100%; height: 480px; }
+  #brainClose { display: none; }
+  #brainStage.fs #brainClose { display: inline-flex; position: fixed; top: 16px; right: 16px; z-index: 201; }
+  #brainStage.fs .brain-tip { bottom: 16px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  @media (max-width: 760px) {
+    .sidebar { position: fixed; top: 0; left: 0; height: 100%; z-index: 50; transform: translateX(-100%); transition: transform .3s ease; }
+    .sidebar.open { transform: translateX(0); }
+    .mobile-menu { display: flex; }
+  }
+</style>
+</head>
+<body>
+  <!-- PIN-Sperre -->
+  <div id="lockScreen" class="lock">
+    <div class="lock-card" id="lockCard">
+      <div class="lock-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 001 5 3 3 0 006 1V4a3 3 0 00-2-1zM15 3a3 3 0 013 3 3 3 0 012 5 3 3 0 01-1 5 3 3 0 01-6 1"/></svg></div>
+      <h2>Big Brain</h2>
+      <p>Bitte gib deinen PIN ein</p>
+      <input type="password" id="pinInput" placeholder="PIN" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()">
+      <div class="lock-err" id="pinError">Falscher PIN — versuch es nochmal.</div>
+      <button class="btn btn-primary btn-full" id="pinBtn" onclick="tryUnlock()">Entsperren</button>
+      <div class="lock-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+        Geschützt · dein PIN ist verschlüsselt gespeichert
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 001 5 3 3 0 006 1V4a3 3 0 00-2-1zM15 3a3 3 0 013 3 3 3 0 012 5 3 3 0 01-1 5 3 3 0 01-6 1"/></svg></span> Big Brain</div>
+    <nav id="nav">
+      <div class="nav-item active" data-view="analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M20 20H3"/></svg> Analytics
+      </div>
+      <div class="nav-item" data-view="finanzen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.5"/></svg> Finanzen
+      </div>
+      <div class="nav-item" data-view="ueber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-6.4 7-6.4s7 2.8 7 6.4"/></svg> Über mich
+      </div>
+      <div class="nav-item" data-view="projekte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> Projekte
+      </div>
+      <div class="nav-item" data-view="kunden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2A3 3 0 0116 11M21 20a5.5 5.5 0 00-4-5.3"/></svg> Kunden
+      </div>
+      <div class="nav-item" data-view="atlas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a8 8 0 01-11.5 7.2L4 20l1-4.5A8 8 0 1121 12z"/></svg> Atlas KI
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-item" data-view="einstellungen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 00-2.3-1.3L14 2h-4l-.3 2.2a7 7 0 00-2.3 1.3l-2.3-1-2 3.4 2 1.5A7 7 0 005 12a7 7 0 00.1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 002.3 1.3L10 22h4l.3-2.2a7 7 0 002.3-1.3l2.3 1 2-3.4-2-1.5A7 7 0 0019 12z"/></svg> Einstellungen
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <button class="icon-btn mobile-menu" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="topbar-title" id="viewTitle">Analytics</div>
+      <div class="spacer"></div>
+      <button class="icon-btn" onclick="importData()" title="Importieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg></button>
+      <div class="avatar">B</div>
+    </div>
+
+    <div class="content">
+      <div class="page">
+
+        <!-- ========== ANALYTICS ========== -->
+        <section class="view active" id="analytics">
+          <div class="page-head">
+            <div class="page-title">Analytics</div>
+          </div>
+
+          <div class="grid grid-4" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="metric-label">Besucher gesamt</div>
+              <div class="metric-value" id="visitsTotal">0</div>
+              <div class="metric-foot"><span id="visitsTrend"></span> seit letztem Update</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Einnahmen (Monat)</div>
+              <div class="metric-value" id="ovIncome">0 €</div>
+              <div class="metric-foot" id="ovIncomeSub">Diesen Monat</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Kunden</div>
+              <div class="metric-value" id="ovClients">0</div>
+              <div class="metric-foot">gesamt</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Projekte</div>
+              <div class="metric-value" id="ovProjCount">0</div>
+              <div class="metric-foot">gesamt</div>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-title">Netto-Umsatz über Zeit</div>
+              <div class="card-sub">Letzte 14 Tage</div>
+              <div id="salesChart"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Ø Einnahme pro Buchung</div>
+              <div class="card-sub">Letzte 14 Tage</div>
+              <div id="avgChart"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="grid-template-columns:1.6fr 1fr;margin-bottom:16px;">
+            <div class="card">
+              <div class="card-title"><span class="section-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20V10M10 20V4M16 20v-7M20 20H3"/></svg></span> Website-Besuche</div>
+              <div class="card-sub">Besuche pro Website</div>
+              <div class="chart empty" id="visitsChart">Noch keine Daten</div>
+            </div>
+            <div class="card stack">
+              <div>
+                <div class="card-title">Wer bin ich</div>
+                <div style="font-size:17px;font-weight:650;margin-top:6px;" id="ovName">Bilal</div>
+                <div class="stat-label" id="ovMeta" style="margin-top:3px;">–</div>
+                <div class="stat-label" id="ovGoal" style="margin-top:3px;">–</div>
+              </div>
+              <div style="border-top:1px solid var(--border);padding-top:14px;">
+                <div class="card-title" style="margin-bottom:8px;">Aktive Projekte</div>
+                <div id="ovProjects"><div class="empty-hint" style="padding:0;">Noch keine Projekte</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-card" style="margin-bottom:16px;">
+            <div class="table-head" style="display:flex;justify-content:space-between;align-items:center;">
+              <div><div class="card-title" style="margin:0;">Websites</div><div class="card-sub" style="margin:0;">Besucher & Trend</div></div>
+            </div>
+            <table>
+              <thead><tr><th>Website</th><th>Trend</th><th style="text-align:right;">Besuche</th><th style="text-align:right;">Aktion</th></tr></thead>
+              <tbody id="websiteList"></tbody>
+            </table>
+            <div style="padding:16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 120px auto;gap:10px;">
+              <input type="text" id="wName" placeholder="Website Name">
+              <input type="text" id="wUrl" placeholder="URL">
+              <input type="number" id="wVisits" placeholder="Besuche">
+              <button class="btn btn-primary" onclick="addWebsite()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Hinzufügen</button>
+            </div>
+          </div>
+
+          <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="quickAdd" style="flex:1;min-width:200px;" placeholder="Schnell-Eingabe: z.B. 'Website verkauft 300' → wird als Einnahme gebucht" onkeydown="if(event.key==='Enter')runQuickAdd()">
+            <button class="btn btn-secondary" onclick="runQuickAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3zM6 12a6 6 0 0012 0M12 18v3"/></svg></button>
+            <button class="btn btn-primary" onclick="runQuickAdd()">Atlas übernimmt</button>
+          </div>
+        </section>
+
+        <!-- ========== FINANZEN ========== -->
+        <section class="view" id="finanzen">
+          <div class="page-head"><div class="page-title">Finanzen</div></div>
+          <div class="grid grid-3" style="margin-bottom:16px;">
+            <div class="card"><div class="metric-label">Einnahmen (Monat)</div><div class="metric-value" style="color:var(--primary)" id="finIncome">0 €</div></div>
+            <div class="card"><div class="metric-label">Ausgaben (Monat)</div><div class="metric-value" style="color:var(--danger)" id="finExpense">0 €</div></div>
+            <div class="card"><div class="metric-label">Netto-Gewinn</div><div class="metric-value" id="finNet">0 €</div></div>
+          </div>
+          <div class="grid grid-2">
+            <div class="table-card">
+              <div class="table-head"><div class="card-title" style="margin:0;">Einnahmen</div></div>
+              <div style="padding:0 16px 14px;display:grid;grid-template-columns:1fr 110px auto;gap:10px;align-items:center;">
+                <input type="text" id="incDesc" placeholder="Beschreibung">
+                <input type="number" id="incAmount" placeholder="Betrag">
+                <button class="btn btn-primary" onclick="addIncome()">Buchen</button>
+              </div>
+              <table><tbody id="incomeList"></tbody></table>
+            </div>
+            <div class="table-card">
+              <div class="table-head"><div class="card-title" style="margin:0;">Ausgaben</div></div>
+              <div style="padding:0 16px 14px;display:grid;grid-template-columns:1fr 110px auto;gap:10px;align-items:center;">
+                <input type="text" id="expDesc" placeholder="Beschreibung">
+                <input type="number" id="expAmount" placeholder="Betrag">
+                <button class="btn btn-danger" onclick="addExpense()">Buchen</button>
+              </div>
+              <table><tbody id="expenseList"></tbody></table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== ÜBER MICH ========== -->
+        <section class="view" id="ueber">
+          <div class="page-head"><div class="page-title">Über mich</div></div>
+
+          <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
+            <div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div class="card-title" style="margin:0;">🧠 Mein Gehirn-Netzwerk</div>
+                <div class="card-sub" style="margin:0;">Deine Interessen, Hobbys, Ziele & mehr — wächst mit jeder neuen Info</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <select id="factCat" style="width:auto;padding:8px 10px;">
+                  <option>Interessen</option><option>Hobbys</option><option>Ziele</option>
+                  <option>Lieblingsfarbe</option><option>Skills</option><option>Lieblingsessen</option><option>Sonstiges</option>
+                </select>
+                <input type="text" id="factVal" placeholder="Neue Info…" style="width:150px;" onkeydown="if(event.key==='Enter')addFactFromUI()">
+                <button class="btn btn-primary" onclick="addFactFromUI()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Knoten</button>
+                <button class="btn btn-secondary" onclick="toggleBrainFullscreen()" title="Vollbild"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg> Vollbild</button>
+              </div>
+            </div>
+            <div id="brainStage">
+              <canvas id="brainCanvas" style="display:block;width:100%;height:480px;"></canvas>
+              <button id="brainClose" class="btn btn-secondary" onclick="toggleBrainFullscreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg> Schließen</button>
+              <div class="brain-tip" style="position:absolute;bottom:10px;left:14px;font-size:11.5px;color:var(--text-dim);">Tipp: Knoten ziehen zum Bewegen · Doppelklick zum Löschen · „Vollbild" für den Obsidian-Modus</div>
+            </div>
+          </div>
+
+          <div class="card" style="max-width:640px;">
+            <div id="profileView">
+              <h2 style="font-size:22px;font-weight:700;" id="pName">Bilal</h2>
+              <p style="color:var(--text-sub);margin:4px 0 18px;" id="pWho">Student + Entrepreneur</p>
+              <div class="set-row"><span class="set-desc">Alter</span><span class="set-label" id="pAge">–</span></div>
+              <div class="set-row"><span class="set-desc">Geburtstag</span><span class="set-label" id="pBday">–</span></div>
+              <div class="set-row"><span class="set-desc">Nächster Geburtstag in</span><span class="set-label" id="pCountdown">–</span></div>
+              <div style="margin:16px 0 6px;"><span class="set-desc">Ziele</span><p style="margin-top:6px;" id="pGoals"></p></div>
+              <div style="margin:16px 0 20px;"><span class="set-desc">Interessen</span><p style="margin-top:6px;" id="pInterests"></p></div>
+              <button class="btn btn-secondary" onclick="editProfile()">Bearbeiten</button>
+            </div>
+            <div id="profileEdit" style="display:none;">
+              <div class="form-row">
+                <div><label class="field">Name</label><input type="text" id="eName"></div>
+                <div><label class="field">Geburtstag</label><input type="date" id="eBday"></div>
+                <div><label class="field">Wer bin ich?</label><input type="text" id="eWho"></div>
+                <div><label class="field">Ziele</label><textarea id="eGoals" style="min-height:70px;"></textarea></div>
+                <div><label class="field">Interessen</label><textarea id="eInterests" style="min-height:70px;"></textarea></div>
+                <button class="btn btn-primary btn-full" onclick="saveProfile()">Speichern</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== PROJEKTE ========== -->
+        <section class="view" id="projekte">
+          <div class="page-head"><div class="page-title">Projekte</div></div>
+          <div class="grid grid-2" style="margin-bottom:16px;">
+            <div class="card"><div class="metric-label">Anzahl Projekte</div><div class="stat-mini" id="projCount">0</div></div>
+            <div class="card"><div class="metric-label">Gesamt-Verdienst</div><div class="stat-mini" id="projEarn">0 €</div></div>
+          </div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-title">Neues Projekt</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 140px auto;gap:10px;margin-top:12px;">
+              <input type="text" id="projName" placeholder="Projektname">
+              <select id="projStatus"><option>Planung</option><option>In Arbeit</option><option>Fast fertig</option><option>Abgeschlossen</option></select>
+              <input type="number" id="projEarnings" placeholder="Verdienst (€)">
+              <button class="btn btn-primary" onclick="addProject()">Hinzufügen</button>
+            </div>
+          </div>
+          <div class="grid grid-auto" id="projectList"></div>
+        </section>
+
+        <!-- ========== KUNDEN ========== -->
+        <section class="view" id="kunden">
+          <div class="page-head"><div class="page-title">Kunden</div></div>
+          <div class="grid grid-3" style="margin-bottom:16px;">
+            <div class="card"><div class="metric-label">Gesamt Kunden</div><div class="stat-mini" id="cliCount">0</div></div>
+            <div class="card"><div class="metric-label">Aktiv</div><div class="stat-mini" style="color:var(--primary)" id="cliActive">0</div></div>
+            <div class="card"><div class="metric-label">In Verhandlung</div><div class="stat-mini" id="cliNego">0</div></div>
+          </div>
+          <div class="table-card">
+            <div class="table-head" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <input type="text" id="cliName" placeholder="Name" style="flex:1;min-width:120px;">
+              <input type="text" id="cliContact" placeholder="Kontakt" style="flex:1;min-width:120px;">
+              <select id="cliStatus" style="width:auto;min-width:130px;"><option>Neu</option><option>Verhandlung</option><option>Aktiv</option><option>Abgelehnt</option></select>
+              <button class="btn btn-primary" onclick="addClient()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Hinzufügen</button>
+            </div>
+            <table>
+              <thead><tr><th>Name</th><th>Kontakt</th><th>Status</th><th style="text-align:right;">Aktion</th></tr></thead>
+              <tbody id="clientList"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ========== ATLAS KI ========== -->
+        <section class="view" id="atlas">
+          <div class="page-head"><div class="page-title">Atlas KI</div></div>
+          <div class="card">
+            <div class="status-line" style="margin-bottom:14px;"><span class="status-dot"></span><span id="atlasStatus">Atlas bereit</span></div>
+            <div id="atlasKeyBox" style="margin-bottom:14px;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                <div class="set-label">🔑 Claude API-Key</div>
+                <span id="atlasKeyState" class="set-desc"></span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="password" id="atlasKeyInput" placeholder="sk-ant-…" style="flex:1;min-width:180px;" onkeydown="if(event.key==='Enter')saveKeyFromAtlas()">
+                <button class="btn btn-primary" onclick="saveKeyFromAtlas()">Speichern</button>
+              </div>
+              <div class="set-desc" style="margin-top:8px;line-height:1.5;">Hol dir einen echten Key auf <b>console.anthropic.com</b> → „API Keys" (beginnt mit <b>sk-ant-</b>). Wird nur lokal auf deinem PC gespeichert. Ohne gültigen Key läuft der kostenlose Offline-Modus.</div>
+            </div>
+            <div class="chat-box" id="chatBox"></div>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+              <input type="text" id="atlasInput" style="flex:1;min-width:180px;" placeholder="Nachricht an Atlas…" onkeydown="if(event.key==='Enter')sendAtlas()">
+              <button class="icon-btn" id="micBtn" onclick="startListening(true)" title="Sprechen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3zM6 12a6 6 0 0012 0M12 18v3"/></svg></button>
+              <button class="btn btn-primary" onclick="sendAtlas()">Senden</button>
+            </div>
+            <button class="btn btn-secondary btn-full" id="liveBtn" onclick="toggleLive()" style="margin-top:10px;">🎙 Live-Gespräch starten</button>
+            <p class="stat-label" style="margin-top:10px;line-height:1.5;">Mit API-Key (Einstellungen → Claude API) wird Atlas ein echter KI-Chat. Ohne Key erkennt er einfache Befehle. Sprache läuft in Chrome, Edge & Opera.</p>
+          </div>
+        </section>
+
+        <!-- ========== EINSTELLUNGEN ========== -->
+        <section class="view" id="einstellungen">
+          <div class="page-head"><div class="page-title">Einstellungen</div></div>
+          <div class="settings-grid">
+
+            <div class="settings-section">
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="12" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="13" r="2.5"/><path d="M12 22a10 10 0 010-20 8 8 0 018 8c0 2-2 3-4 3h-2a2 2 0 000 4 2 2 0 01-2 5z"/></svg> Dashboard-Farbe</h3>
+              <div class="set-row"><div class="grow"><div class="set-label">Akzentfarbe</div></div></div>
+              <div class="color-picker" style="margin-bottom:12px;">
+                <div class="color-option" style="background:#00a97b" data-color="#00a97b" title="Shopify-Grün"></div>
+                <div class="color-option" style="background:#3b82f6" data-color="#3b82f6" title="Blau"></div>
+                <div class="color-option" style="background:#8b5cf6" data-color="#8b5cf6" title="Violett"></div>
+                <div class="color-option" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></div>
+                <div class="color-option" style="background:#f59e0b" data-color="#f59e0b" title="Orange"></div>
+                <div class="color-option" style="background:#ec4899" data-color="#ec4899" title="Pink"></div>
+              </div>
+              <div class="set-row"><div class="grow"><div class="set-label">Eigene Farbe</div></div><input type="color" id="customColor" class="set-control" value="#00a97b" onchange="setPrimary(this.value)"></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Schriftart</div></div>
+                <select id="setFont" class="set-control" onchange="saveSettingsFromUI()">
+                  <option value="system">Standard (modern)</option>
+                  <option value="segoe">Segoe / Sans</option>
+                  <option value="georgia">Georgia (Serif)</option>
+                  <option value="trebuchet">Trebuchet (weich)</option>
+                  <option value="mono">Mono (technisch)</option>
+                </select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Netzwerk-Farbe</div><div class="set-desc">Leuchtfarbe im „Über mich"-Netzwerk</div></div><input type="color" id="setBrainColor" class="set-control" value="#5b8cff" onchange="setBrainColor(this.value)"></div>
+            </div>
+
+            <div class="settings-section">
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12h5l2-7 4 14 3-9 2 4h4"/></svg> Sprache & Region</h3>
+              <div class="set-row"><div class="grow"><div class="set-label">Sprache</div></div><select id="setLang" class="set-control" onchange="saveSettingsFromUI()"><option value="de">Deutsch (DE)</option><option value="en">English (EN)</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Währung</div></div><select id="setCurrency" class="set-control" onchange="saveSettingsFromUI();refreshAll()"><option value="€">Euro (€)</option><option value="$">Dollar ($)</option><option value="£">Pfund (£)</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Zeitzone</div></div><select id="setTz" class="set-control" onchange="saveSettingsFromUI()"><option>Europe/Berlin (MEZ)</option><option>Europe/London</option><option>Europe/Paris</option></select></div>
+            </div>
+
+            <div class="settings-section">
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3zM6 12a6 6 0 0012 0M12 18v3"/></svg> Atlas Stimme</h3>
+              <div class="set-row"><div class="grow"><div class="set-label">Stimm-Typ</div></div><select id="setVoice" class="set-control" onchange="saveSettingsFromUI()"><option value="male">Männlich</option><option value="female">Weiblich</option><option value="neutral">Neutral</option><option value="robot">Roboter</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Konkrete Stimme</div><div class="set-desc">Wähle eine echte Stimme deines PCs (z.B. männlich)</div></div><select id="setVoiceName" class="set-control" onchange="saveSettingsFromUI()"><option value="">Automatisch</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Lautstärke: <span id="volLabel">75%</span></div></div><input type="range" min="0" max="100" value="75" id="setVolume" class="set-control" oninput="volLabel.textContent=this.value+'%'" onchange="saveSettingsFromUI()"></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Sprechgeschwindigkeit</div></div><select id="setSpeed" class="set-control" onchange="saveSettingsFromUI()"><option value="slow">Langsam</option><option value="normal">Normal</option><option value="fast">Schnell</option></select></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Antworten vorlesen</div><div class="set-desc">Atlas spricht seine Antworten</div></div><div class="toggle" id="tgSpeak" onclick="toggleSetting('speakReplies', this)"></div></div>
+            </div>
+
+            <div class="settings-section">
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="10" r="1.2"/><circle cx="15" cy="10" r="1.2"/><path d="M9 15h6M12 4V2"/></svg> Atlas Verhalten</h3>
+              <div class="set-row"><div class="grow"><div class="set-label">Automatisches Tracking</div></div><div class="toggle" id="tgTracking" onclick="toggleSetting('autoTracking', this)"></div></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Monatliche Auto-Reports</div></div><div class="toggle" id="tgReports" onclick="toggleSetting('autoReports', this)"></div></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Atlas Modus</div></div><select id="setMode" class="set-control" onchange="saveSettingsFromUI()"><option value="normal">Normal (fragt nach)</option><option value="auto">Automatisch</option><option value="safe">Nur mit Bestätigung</option></select></div>
+            </div>
+
+            <div class="settings-section">
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M13 10l3 3"/></svg> Claude API</h3>
+              <div class="set-row"><div class="grow"><div class="set-label">Status</div></div><div id="apiStatus" style="font-size:13px;font-weight:600;color:var(--danger)">Nicht verbunden</div></div>
+              <div class="set-row"><div class="grow"><div class="set-label">API-Key</div></div><input type="password" id="setApiKey" class="set-control" placeholder="sk-ant-…" onchange="saveApiKey()"></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Modell</div></div><select id="setModel" class="set-control" onchange="saveSettingsFromUI()"><option value="claude-haiku-4-5-20251001">Haiku 4.5 — schnell</option><option value="claude-sonnet-5">Sonnet 5</option><option value="claude-opus-4-8">Opus 4.8 — schlau</option></select></div>
+              <button class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="saveApiKey()">Speichern & prüfen</button>
+              <div class="set-desc" style="margin-top:12px;line-height:1.5;">Key holen auf <b>console.anthropic.com</b> → „API Keys". Dein Key bleibt nur lokal auf deinem PC.</div>
+            </div>
+
+            <div class="settings-section">
+              <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> Daten & Sicherheit</h3>
+              <div class="set-row"><div class="grow"><div class="set-label">Automatische Backups</div></div><div class="toggle" id="tgBackup" onclick="toggleSetting('autoBackup', this)"></div></div>
+              <div class="set-row"><div class="grow"><div class="set-label">PIN ändern</div><div class="set-desc">Neuer PIN zum Entsperren der Seite</div></div><input type="password" id="newPin" class="set-control" placeholder="Neuer PIN" autocomplete="off"></div>
+              <button class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="changePin()">PIN speichern</button>
+              <button class="btn btn-secondary btn-full" style="margin-top:10px;" onclick="exportData()">Daten exportieren</button>
+              <button class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="importData()">Daten importieren</button>
+              <button class="btn btn-danger btn-full" style="margin-top:8px;" onclick="clearData()">Alle Daten löschen</button>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+// ---------------- Daten ----------------
+const KEY = 'atlas-dashboard-data';
+const DEFAULT_DATA = {
+  profile: { name: 'Bilal', birthday: '2010-05-30', who: 'Student + Entrepreneur',
+    goals: 'Finanziell frei sein, ohne 08/15-Job', interests: 'Anime, Tech, Webseitenbau' },
+  websites: [],
+  income: [],
+  expenses: [],
+  projects: [],
+  clients: [],
+  chat: [],
+  brain: [
+    { category: 'Interessen', value: 'Serien' },
+    { category: 'Interessen', value: 'Anime & Manga' },
+    { category: 'Interessen', value: 'Programmieren & Technik' },
+    { category: 'Interessen', value: 'Business & Geld' },
+    { category: 'Interessen', value: 'Gaming & Power-Scaling' },
+    { category: 'Hobbys', value: 'Volleyball' },
+    { category: 'Hobbys', value: 'Gaming (Brawl Stars)' },
+    { category: 'Hobbys', value: 'Webseiten bauen' },
+    { category: 'Ziele', value: 'Sorglos Geld ausgeben können' },
+    { category: 'Ziele', value: 'Finanziell frei sein' },
+    { category: 'Ziele', value: 'Erfolgreiche App / Spiel' },
+    { category: 'Ziele', value: 'Bekannt werden' },
+    { category: 'Lieblingsfarbe', value: 'Schwarz' },
+    { category: 'Lieblingsfarbe', value: 'Lila' }
+  ],
+  settings: { primaryColor: '#00a97b', font: 'system', brainColor: '#5b8cff', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
+    voice: 'male', voiceName: '', volume: 75, speed: 'normal',
+    autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal',
+    apiKey: '', model: 'claude-haiku-4-5-20251001', speakReplies: true }
+};
+
+let data = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return structuredClone(DEFAULT_DATA);
+    const parsed = JSON.parse(raw);
+    const merged = Object.assign(structuredClone(DEFAULT_DATA), parsed,
+      { settings: Object.assign({}, DEFAULT_DATA.settings, parsed.settings || {}) });
+    // Migration: altes Standard-Grün -> Shopify-Grün
+    if (merged.settings.primaryColor === '#22c55e') merged.settings.primaryColor = '#00a97b';
+    // Migration: altes Netzwerk-Orange -> Galaxie-Blau
+    if (merged.settings.brainColor === '#f0972b') merged.settings.brainColor = '#5b8cff';
+    return merged;
+  } catch (e) { return structuredClone(DEFAULT_DATA); }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){} }
+
+const cur = () => data.settings.currency || '€';
+const money = n => (Math.round(n*100)/100).toLocaleString('de-DE', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + ' ' + cur();
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayStr = () => new Date().toISOString().split('T')[0];
+
+// ---------------- Toast ----------------
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ---------------- Navigation ----------------
+const TITLES = { analytics:'Analytics', finanzen:'Finanzen', ueber:'Über mich',
+  projekte:'Projekte', kunden:'Kunden', atlas:'Atlas KI', einstellungen:'Einstellungen' };
+
+document.getElementById('nav').addEventListener('click', navClick);
+function navClick(e) {
+  const item = e.target.closest('.nav-item');
+  if (!item) return;
+  const view = item.dataset.view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === view));
+  document.getElementById('viewTitle').textContent = TITLES[view];
+  document.getElementById('sidebar').classList.remove('open');
+  document.querySelector('.content').scrollTop = 0;
+  renderView(view);
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+function renderView(v) {
+  if (v !== 'ueber') stopBrain();
+  if (v === 'analytics') renderAnalytics();
+  if (v === 'finanzen') renderFinances();
+  if (v === 'ueber') { renderProfile(); setTimeout(renderBrain, 30); }
+  if (v === 'projekte') renderProjects();
+  if (v === 'kunden') renderClients();
+  if (v === 'atlas') { renderChat(); updateAtlasStatus(); }
+  if (v === 'einstellungen') renderSettings();
+}
+function refreshAll() { renderAnalytics(); renderFinances(); renderProjects(); renderClients(); }
+
+// ---------------- Analytics ----------------
+function monthTotal(list) {
+  const now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), 1);
+  return list.filter(x => new Date(x.date) >= start).reduce((s,x) => s + x.amount, 0);
+}
+function daysLeftInMonth() {
+  const now = new Date(), end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  return end.getDate() - now.getDate();
+}
+const ARROW_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M7 14l5-5 5 5"/></svg>';
+const ARROW_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M7 10l5 5 5-5"/></svg>';
+function trendBadge(cur, prev) {
+  if (!prev) return '<span class="trend neu">neu</span>';
+  const pct = ((cur - prev) / prev) * 100;
+  if (Math.round(pct) === 0) return '<span class="trend flat">0 %</span>';
+  const up = pct > 0;
+  return `<span class="trend ${up?'up':'down'}">${up?ARROW_UP:ARROW_DOWN} ${Math.abs(pct).toFixed(0)} %</span>`;
+}
+
+function dailyMap(list, days) {
+  const map = {}, order = [], today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    map[key] = { sum: 0, count: 0 }; order.push(key);
+  }
+  list.forEach(x => { if (map[x.date]) { map[x.date].sum += x.amount; map[x.date].count++; } });
+  return order.map(k => ({ label: k.slice(8) + '.' + k.slice(5,7), sum: map[k].sum, count: map[k].count }));
+}
+function lineChartSVG(series, fmt) {
+  const W=460,H=160,padL=40,padR=10,padT=12,padB=24;
+  const n=series.length, vals=series.map(s=>s.value);
+  const max=Math.max(...vals,1), ih=H-padT-padB, iw=W-padL-padR;
+  const xs=i=> padL + (n<=1? iw/2 : (i/(n-1))*iw);
+  const ys=v=> padT + ih - (v/max)*ih;
+  const pts=vals.map((v,i)=>[xs(i),ys(v)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=`${line} L ${xs(n-1).toFixed(1)} ${(padT+ih).toFixed(1)} L ${xs(0).toFixed(1)} ${(padT+ih).toFixed(1)} Z`;
+  let trend='';
+  if(n>=2){ const xm=(n-1)/2, ym=vals.reduce((a,b)=>a+b,0)/n; let num=0,den=0;
+    vals.forEach((v,i)=>{num+=(i-xm)*(v-ym);den+=(i-xm)*(i-xm);}); const sl=den?num/den:0,b=ym-sl*xm;
+    trend=`<line x1="${xs(0).toFixed(1)}" y1="${ys(b).toFixed(1)}" x2="${xs(n-1).toFixed(1)}" y2="${ys(sl*(n-1)+b).toFixed(1)}" stroke="#8a8a8a" stroke-width="1.2" stroke-dasharray="4 3"/>`; }
+  const gid='lg'+Math.random().toString(36).slice(2,7);
+  let xl=''; const step=Math.max(1,Math.ceil(n/5));
+  for(let i=0;i<n;i+=step) xl+=`<text x="${xs(i).toFixed(1)}" y="${H-7}" font-size="9" fill="var(--text-dim)" text-anchor="middle">${series[i].label}</text>`;
+  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2" fill="var(--primary)"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/></linearGradient></defs>
+    <text x="3" y="${(padT+7).toFixed(1)}" font-size="9" fill="var(--text-dim)">${fmt?fmt(max):Math.round(max)}</text>
+    <text x="3" y="${(padT+ih).toFixed(1)}" font-size="9" fill="var(--text-dim)">0</text>
+    <path d="${area}" fill="url(#${gid})"/><path d="${line}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/>
+    ${trend}${dots}${xl}</svg>`;
+}
+function renderSalesCharts() {
+  const days = dailyMap(data.income, 14);
+  const sc = document.getElementById('salesChart'), ac = document.getElementById('avgChart');
+  if (sc) sc.innerHTML = lineChartSVG(days.map(d=>({label:d.label, value:d.sum})), v=>Math.round(v)+' '+cur());
+  if (ac) ac.innerHTML = lineChartSVG(days.map(d=>({label:d.label, value:d.count?d.sum/d.count:0})), v=>Math.round(v)+' '+cur());
+}
+
+function renderAnalytics() {
+  renderSalesCharts();
+  const total = data.websites.reduce((s,w) => s + (w.visits||0), 0);
+  const prevTotal = data.websites.reduce((s,w) => s + (w.prevVisits||0), 0);
+  document.getElementById('visitsTotal').textContent = total.toLocaleString('de-DE');
+  document.getElementById('visitsTrend').innerHTML = data.websites.length ? trendBadge(total, prevTotal) : '';
+  document.getElementById('ovClients').textContent = data.clients.length;
+  document.getElementById('ovProjCount').textContent = data.projects.length;
+
+  const chart = document.getElementById('visitsChart');
+  if (!data.websites.length) {
+    chart.className = 'chart empty';
+    chart.innerHTML = 'Noch keine Daten — füge unten eine Website hinzu';
+  } else {
+    chart.className = 'chart';
+    const max = Math.max(...data.websites.map(w => w.visits), 1);
+    chart.innerHTML = data.websites.map(w => `
+      <div class="bar-wrap" title="${esc(w.name)}: ${w.visits} Besuche">
+        <div class="bar-val">${w.visits}</div>
+        <div class="bar" style="height:${Math.max(4, (w.visits/max)*140)}px"></div>
+        <div class="bar-name">${esc(w.name)}</div>
+      </div>`).join('');
+  }
+
+  document.getElementById('ovIncome').textContent = money(monthTotal(data.income));
+  document.getElementById('ovIncomeSub').textContent = 'Noch ' + daysLeftInMonth() + ' Tage diesen Monat';
+  document.getElementById('ovName').textContent = data.profile.name;
+  document.getElementById('ovMeta').textContent = calcAge() + ' Jahre · ' + data.profile.who;
+  document.getElementById('ovGoal').textContent = 'Ziel: ' + data.profile.goals;
+
+  const ovP = document.getElementById('ovProjects');
+  const active = data.projects.filter(p => p.status !== 'Abgeschlossen');
+  ovP.innerHTML = active.length
+    ? active.slice(0,5).map(p => `<div style="font-size:13.5px;margin-bottom:6px;">${esc(p.name)} <span class="stat-label">· ${esc(p.status)}</span></div>`).join('')
+    : '<div class="empty-hint" style="padding:0;">Noch keine aktiven Projekte</div>';
+
+  document.getElementById('websiteList').innerHTML = data.websites.length
+    ? data.websites.map((w,i) => `
+      <tr data-website-id="${w.name}">
+        <td><div class="cell-title">${esc(w.name)}</div><div class="cell-sub">${esc(w.url)||'—'}</div></td>
+        <td>${trendBadge(w.visits||0, w.prevVisits||0)}</td>
+        <td class="num" style="font-weight:600;">${w.visits}</td>
+        <td class="right"><button class="del-btn" style="color:var(--primary)" title="Manuell aktualisieren" onclick="updateVisitsByName('${w.name}')">Besuche ⟳</button><button class="del-btn" style="color:var(--accent)" title="Tracking-Code für Auto-Zähler" onclick="getTrackingCode('${w.name}')">Code</button><button class="del-btn" onclick="delWebsite(${i})">Löschen</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4"><div class="empty-hint" style="padding:8px 0;">Keine Websites hinzugefügt</div></td></tr>';
+}
+function addWebsite() {
+  const name = document.getElementById('wName').value.trim();
+  const url = document.getElementById('wUrl').value.trim();
+  const visitsInput = document.getElementById('wVisits').value.trim();
+  if (!name) return toast('Bitte einen Namen eingeben');
+  if (!url) return toast('Bitte eine URL eingeben');
+
+  const visits = visitsInput ? parseInt(visitsInput) : 0;
+  if(isNaN(visits) || visits < 0) return toast('Bitte eine gültige Besucherzahl eingeben (≥0)');
+
+  data.websites.push({ name, url, visits, prevVisits: 0, date: todayStr() });
+  save();
+  document.getElementById('wName').value = '';
+  document.getElementById('wUrl').value = '';
+  document.getElementById('wVisits').value = '';
+  renderAnalytics();
+  toast('Website hinzugefügt ✔ · Klick "Besuche ⟳" um Zahlen zu aktualisieren');
+}
+function updateVisits(i) {
+  const w = data.websites[i];
+  const v = prompt(`Neue Besucherzahl für "${w.name}":`, w.visits);
+  if (v === null) return;
+  w.prevVisits = w.visits || 0;
+  w.visits = parseInt(v) || 0;
+  save(); renderAnalytics(); toast('Besuche aktualisiert ✔');
+}
+function updateVisitsByName(name) {
+  const w = data.websites.find(x => x.name === name);
+  if(!w) return toast('Website nicht gefunden');
+  const v = prompt(`Neue Besucherzahl für "${w.name}":`, w.visits || 0);
+  if (v === null) return;
+  w.prevVisits = w.visits || 0;
+  const newVisits = parseInt(v);
+  if(isNaN(newVisits)) return toast('Bitte eine Zahl eingeben');
+  w.visits = newVisits;
+  save();
+  renderAnalytics();
+  toast('Besuche aktualisiert ✔');
+}
+function delWebsite(i) { data.websites.splice(i,1); save(); renderAnalytics(); }
+
+function addAutoVisits(websiteName, amount) {
+  const w = data.websites.find(x => x.name === websiteName);
+  if (!w) return false;
+  w.prevVisits = w.visits || 0;
+  w.visits = (w.visits || 0) + (amount || 1);
+  w.date = todayStr();
+  save(); renderAnalytics();
+  return true;
+}
+
+function getTrackingCode(websiteName) {
+  const code = `<!-- Tracking für Big Brain Dashboard -->
+<img src="https://bilalmurrad-7.github.io/orbion-api/?track=${encodeURIComponent(websiteName)}" style="display:none;" alt="">`;
+  const blob = new Blob([code], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tracking.html';
+  a.click();
+  toast('Tracking-Code kopiert. Einfach in jede Seite einbauen!');
+}
+
+function parseAmount(text) { const m = String(text).replace(',', '.').match(/(\d+(\.\d+)?)/); return m ? parseFloat(m[1]) : null; }
+function runQuickAdd() {
+  const el = document.getElementById('quickAdd');
+  const text = el.value.trim();
+  if (!text) return;
+  const amount = parseAmount(text);
+  if (amount) {
+    data.income.push({ description: text, amount, date: todayStr() });
+    save(); renderAnalytics();
+    toast('Als Einnahme gebucht: ' + money(amount) + ' ✔');
+  } else { toast('Keine Zahl gefunden — bitte Betrag angeben'); }
+  el.value = '';
+}
+
+// ---------------- Finanzen ----------------
+function renderFinances() {
+  const inc = monthTotal(data.income), exp = monthTotal(data.expenses);
+  document.getElementById('finIncome').textContent = money(inc);
+  document.getElementById('finExpense').textContent = money(exp);
+  const net = document.getElementById('finNet');
+  net.textContent = money(inc - exp);
+  net.style.color = (inc - exp) >= 0 ? 'var(--primary)' : 'var(--danger)';
+
+  document.getElementById('incomeList').innerHTML = data.income.length
+    ? data.income.slice().reverse().map((it) => {
+        const i = data.income.indexOf(it);
+        return `<tr><td><div class="cell-title">${esc(it.description)}</div><div class="cell-sub">${it.date}</div></td>
+        <td class="num" style="color:var(--primary);font-weight:700;">${money(it.amount)}</td>
+        <td class="right"><button class="del-btn" onclick="delFin('income',${i})">✕</button></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="3"><div class="empty-hint" style="padding:8px 0;">Keine Einnahmen</div></td></tr>';
+
+  document.getElementById('expenseList').innerHTML = data.expenses.length
+    ? data.expenses.slice().reverse().map((it) => {
+        const i = data.expenses.indexOf(it);
+        return `<tr><td><div class="cell-title">${esc(it.description)}</div><div class="cell-sub">${it.date}</div></td>
+        <td class="num" style="color:var(--danger);font-weight:700;">${money(it.amount)}</td>
+        <td class="right"><button class="del-btn" onclick="delFin('expenses',${i})">✕</button></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="3"><div class="empty-hint" style="padding:8px 0;">Keine Ausgaben</div></td></tr>';
+}
+function addIncome() {
+  const d = document.getElementById('incDesc').value.trim();
+  const a = parseFloat(document.getElementById('incAmount').value);
+  if (!d || !(a > 0)) return toast('Beschreibung und Betrag eingeben');
+  data.income.push({ description: d, amount: a, date: todayStr() });
+  save(); document.getElementById('incDesc').value=''; document.getElementById('incAmount').value='';
+  renderFinances(); toast('Einnahme gebucht ✔');
+}
+function addExpense() {
+  const d = document.getElementById('expDesc').value.trim();
+  const a = parseFloat(document.getElementById('expAmount').value);
+  if (!d || !(a > 0)) return toast('Beschreibung und Betrag eingeben');
+  data.expenses.push({ description: d, amount: a, date: todayStr() });
+  save(); document.getElementById('expDesc').value=''; document.getElementById('expAmount').value='';
+  renderFinances(); toast('Ausgabe gebucht ✔');
+}
+function delFin(type, i) { data[type].splice(i,1); save(); renderFinances(); }
+
+// ---------------- Profil ----------------
+function calcAge() {
+  const b = new Date(data.profile.birthday); if (isNaN(b)) return '–';
+  const now = new Date(); let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+function nextBirthday() {
+  const b = new Date(data.profile.birthday); if (isNaN(b)) return '–';
+  const now = new Date(); let next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+  if (next < now) next = new Date(now.getFullYear()+1, b.getMonth(), b.getDate());
+  const days = Math.ceil((next - now) / 86400000);
+  return days === 0 ? 'Heute! 🎉' : days + ' Tagen';
+}
+function renderProfile() {
+  const p = data.profile;
+  document.getElementById('pName').textContent = p.name;
+  document.getElementById('pWho').textContent = p.who;
+  document.getElementById('pAge').textContent = calcAge() + ' Jahre';
+  const b = new Date(p.birthday);
+  document.getElementById('pBday').textContent = isNaN(b) ? '–' : b.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
+  document.getElementById('pCountdown').textContent = nextBirthday();
+  document.getElementById('pGoals').textContent = p.goals;
+  document.getElementById('pInterests').textContent = p.interests;
+  document.getElementById('profileView').style.display = 'block';
+  document.getElementById('profileEdit').style.display = 'none';
+}
+function editProfile() {
+  const p = data.profile;
+  document.getElementById('eName').value = p.name;
+  document.getElementById('eBday').value = p.birthday;
+  document.getElementById('eWho').value = p.who;
+  document.getElementById('eGoals').value = p.goals;
+  document.getElementById('eInterests').value = p.interests;
+  document.getElementById('profileView').style.display = 'none';
+  document.getElementById('profileEdit').style.display = 'block';
+}
+function saveProfile() {
+  data.profile = {
+    name: document.getElementById('eName').value.trim() || 'Bilal',
+    birthday: document.getElementById('eBday').value || data.profile.birthday,
+    who: document.getElementById('eWho').value.trim(),
+    goals: document.getElementById('eGoals').value.trim(),
+    interests: document.getElementById('eInterests').value.trim()
+  };
+  save(); renderProfile(); renderAnalytics(); if (brainCanvas) buildBrain(); toast('Profil gespeichert ✔');
+}
+
+// ============ NEURAL NETWORK 3D ============
+let brainNodes = [], brainLinks = [];
+let brainAnim = null, brainCanvas = null, brainCtx = null;
+let brainTime = 0, brainW = 0, brainH = 0;
+let hoverNode = null, particles = [];
+let centerCube = { x:0, y:0, z:0, size:40, rot:0 };
+
+function brainColor() { return data.settings.brainColor || '#5b8cff'; }
+function hexToRgb(hex) {
+  const h = String(hex||'#5b8cff').replace('#','');
+  const r = parseInt(h.slice(0,2)||'5b',16) || 91;
+  const g = parseInt(h.slice(2,4)||'8c',16) || 140;
+  const b = parseInt(h.slice(4,6)||'ff',16) || 255;
+  return {r: isNaN(r)?91:r, g: isNaN(g)?140:g, b: isNaN(b)?255:b};
+}
+
+// ===== NEURAL NETWORK BUILDER =====
+function buildNeuralNetwork(){
+  brainNodes = [];
+  brainLinks = [];
+  particles = [];
+
+  // Zentral-Knoten (größer und prominenter)
+  brainNodes.push({
+    id:'center', label:'Ich', group:'center', r:25,
+    x:0, y:0, z:0, vx:0, vy:0, vz:0, fixed:true
+  });
+
+  // Kategorie-Knoten - in Schichten angeordnet für 3D-Tiefe
+  const categories = [
+    { name:'Interessen', angle:0, z:-120 },
+    { name:'Hobbys', angle:Math.PI/3, z:-80 },
+    { name:'Ziele', angle:2*Math.PI/3, z:0 },
+    { name:'Freunde', angle:Math.PI, z:80 },
+    { name:'Schule', angle:4*Math.PI/3, z:120 },
+    { name:'Freizeit', angle:5*Math.PI/3, z:40 }
+  ];
+
+  const catNodes = {};
+  categories.forEach(cat => {
+    const d = 220; // größerer Radius
+    const x = Math.cos(cat.angle)*d, y = Math.sin(cat.angle)*d;
+    const node = {
+      id:'cat:'+cat.name, label:cat.name, group:'category', r:16,
+      x:x, y:y, z:cat.z, vx:0, vy:0, vz:0
+    };
+    brainNodes.push(node);
+    catNodes[cat.name] = node;
+    brainLinks.push({ s:'center', t:node.id, strong:true });
+  });
+
+  // Fakten-Knoten - viel größere Z-Streuung für dramatisches 3D-Erscheinungsbild
+  data.brain.forEach((f, idx) => {
+    const cat = catNodes[f.category];
+    if(!cat) return;
+    const angle = Math.random()*6.283;
+    const dist = 100+Math.random()*80;
+    const x = cat.x+Math.cos(angle)*dist;
+    const y = cat.y+Math.sin(angle)*dist;
+    const z = cat.z+(Math.random()-0.5)*200; // viel größere Tiefe
+    const node = {
+      id:'f'+idx, label:f.value, group:'fact', r:9,
+      x:x, y:y, z:z, vx:0, vy:0, vz:0
+    };
+    brainNodes.push(node);
+    brainLinks.push({ s:cat.id, t:node.id, strength:0.6 });
+  });
+
+  // Zusätzliche Verbindungen
+  const extraLinks = [
+    ['cat:Freunde', 'cat:Hobbys'],
+    ['cat:Schule', 'cat:Freizeit'],
+    ['cat:Interessen', 'cat:Ziele']
+  ];
+  extraLinks.forEach(([s, t]) => {
+    brainLinks.push({ s, t, weak:true, strength:0.3 });
+  });
+}
+
+// Stub for compatibility
+function buildBrain(){ /* Neural network already built */ }
+
+function brainStep(){
+  const byId = {};
+  brainNodes.forEach(n => byId[n.id]=n);
+
+  // 3D Force-directed physics (sanfter für stabilere Struktur)
+  for(let i=0;i<brainNodes.length;i++){
+    const a = brainNodes[i];
+    for(let j=i+1;j<brainNodes.length;j++){
+      const b = brainNodes[j];
+      let dx=a.x-b.x, dy=a.y-b.y, dz=a.z-b.z;
+      let d2=dx*dx+dy*dy+dz*dz;
+      if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); dz=Math.random(); }
+      const d=Math.sqrt(d2), f=2500/d2; // etwas sanfter
+      const fx=(dx/d)*f, fy=(dy/d)*f, fz=(dz/d)*f;
+      a.vx+=fx; a.vy+=fy; a.vz+=fz;
+      b.vx-=fx; b.vy-=fy; b.vz-=fz;
+    }
+  }
+
+  // Link forces
+  brainLinks.forEach(l => {
+    const a=byId[l.s], b=byId[l.t];
+    if(!a||!b) return;
+    const dx=b.x-a.x, dy=b.y-a.y, dz=b.z-a.z;
+    const d=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.01;
+    const target=l.strong?100:80, f=(d-target)*0.012; // etwas sanfter
+    const fx=(dx/d)*f, fy=(dy/d)*f, fz=(dz/d)*f;
+    a.vx+=fx; a.vy+=fy; a.vz+=fz;
+    b.vx-=fx; b.vy-=fy; b.vz-=fz;
+  });
+
+  // Damping + centering (stärkere Stabilisierung)
+  brainNodes.forEach(n => {
+    if(n.fixed){ n.x=0; n.y=0; n.z=0; n.vx=0; n.vy=0; n.vz=0; return; }
+    n.vx += (0-n.x)*0.003; // stärkeres Centering
+    n.vy += (0-n.y)*0.003;
+    n.vz += (0-n.z)*0.001;
+    n.vx *= 0.92; n.vy *= 0.92; n.vz *= 0.92; // höheres Damping
+    n.x += Math.max(-15, Math.min(15, n.vx));
+    n.y += Math.max(-15, Math.min(15, n.vy));
+    n.z += Math.max(-25, Math.min(25, n.vz));
+  });
+
+  // Particles along links (sehr selten und entspannt)
+  if(Math.random()<0.01){ // nur 1% chance
+    brainLinks.forEach(l => {
+      if(Math.random()>0.15) return; // nur 15% der Links
+      const a=byId[l.s], b=byId[l.t];
+      if(!a||!b) return;
+      particles.push({
+        sx:a.x, sy:a.y, sz:a.z,
+        tx:b.x, ty:b.y, tz:b.z,
+        progress:0, speed:0.008+Math.random()*0.008 // langsamer
+      });
+    });
+  }
+
+  // Update particles
+  particles = particles.filter(p => {
+    p.progress += p.speed;
+    return p.progress < 1;
+  });
+}
+
+// NEURAL NETWORK 3D RENDER
+function brainDraw(){
+  const ctx = brainCtx; if(!ctx) return;
+  brainTime += 0.016;
+  ctx.clearRect(0, 0, brainW, brainH);
+
+  brainStep(); // Physics
+
+  // Colors
+  const col = brainColor();
+  const rgb = hexToRgb(col) || {r:91, g:140, b:255};
+  const colorStr = `rgb(${rgb.r||91},${rgb.g||140},${rgb.b||255})`;
+  const cx = brainW/2, cy = brainH/2;
+
+  // 3D Perspective transform - stärkere Tiefenwirkung
+  const rotX = brainTime*0.0006;
+  const rotY = brainTime*0.001;
+  const P3D = (x,y,z) => {
+    let x2=x, y2=y, z2=z;
+    const cy2=Math.cos(rotX), sy2=Math.sin(rotX);
+    const ty=y2*cy2-z2*sy2; const tz=y2*sy2+z2*cy2;
+    y2=ty; z2=tz;
+    const cx2=Math.cos(rotY), sx2=Math.sin(rotY);
+    const tx=x2*cx2+z2*sx2; const tz2=-x2*sx2+z2*cx2;
+    x2=tx; z2=tz2;
+    const scale=400/(400+z2*1.2); // stärkere Perspektive
+    return { sx:cx+x2*scale, sy:cy+y2*scale, scale:scale, z:z2 };
+  };
+
+  // Collect all objects
+  const objects = [];
+
+  // Center cube (3D-Würfel) - größer und prominenter
+  centerCube.rot += 0.005;
+  const cubeVertices = [
+    [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],
+    [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]
+  ];
+  const cubeSize = 50; // größer
+  const vertices = cubeVertices.map(v => P3D(v[0]*cubeSize, v[1]*cubeSize, v[2]*cubeSize));
+  const cubeEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+
+  cubeEdges.forEach(([a,b]) => {
+    objects.push({
+      type:'line', x1:vertices[a].sx, y1:vertices[a].sy, x2:vertices[b].sx, y2:vertices[b].sy,
+      z:(vertices[a].z+vertices[b].z)/2, color:colorStr, opacity:0.6, width:1.5
+    });
+  });
+
+  vertices.forEach(v => {
+    objects.push({
+      type:'dot', sx:v.sx, sy:v.sy, z:v.z, r:2, color:'#ffffff', opacity:0.8
+    });
+  });
+
+  // Links (glowing lines)
+  const byId = {};
+  brainNodes.forEach(n => byId[n.id]=n);
+  brainLinks.forEach(l => {
+    const a=byId[l.s], b=byId[l.t];
+    if(!a||!b) return;
+    const p1=P3D(a.x,a.y,a.z), p2=P3D(b.x,b.y,b.z);
+    objects.push({
+      type:'line', x1:p1.sx, y1:p1.sy, x2:p2.sx, y2:p2.sy,
+      z:(p1.z+p2.z)/2, color:colorStr, opacity:l.strong?0.5:0.25, width:l.strong?1.5:0.8
+    });
+  });
+
+  // Particles
+  particles.forEach(p => {
+    const ix=p.sx+(p.tx-p.sx)*p.progress;
+    const iy=p.sy+(p.ty-p.sy)*p.progress;
+    const iz=p.sz+(p.tz-p.sz)*p.progress;
+    const pp=P3D(ix,iy,iz);
+    objects.push({
+      type:'particle', sx:pp.sx, sy:pp.sy, z:pp.z, r:3, color:'#ffffff', opacity:1-p.progress
+    });
+  });
+
+  // Nodes
+  brainNodes.forEach(n => {
+    const p=P3D(n.x,n.y,n.z);
+    const r=n.r*p.scale;
+    objects.push({
+      type:'node', sx:p.sx, sy:p.sy, z:p.z, r:r, label:n.label, group:n.group,
+      color:colorStr, isHover:hoverNode===n
+    });
+  });
+
+  // Sort by depth
+  objects.sort((a,b) => a.z-b.z);
+
+  // Render
+  objects.forEach(obj => {
+    ctx.globalAlpha = obj.opacity || 1;
+    if(obj.type==='line'){
+      ctx.strokeStyle = obj.color;
+      ctx.lineWidth = obj.width;
+      ctx.beginPath();
+      ctx.moveTo(obj.x1, obj.y1);
+      ctx.lineTo(obj.x2, obj.y2);
+      ctx.stroke();
+    } else if(obj.type==='dot'){
+      const grad=ctx.createRadialGradient(obj.sx,obj.sy,0,obj.sx,obj.sy,obj.r*2);
+      grad.addColorStop(0,'rgba(255,255,255,0.8)');
+      grad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.arc(obj.sx,obj.sy,obj.r*2,0,6.283);
+      ctx.fill();
+    } else if(obj.type==='particle'){
+      ctx.fillStyle = obj.color;
+      ctx.beginPath();
+      ctx.arc(obj.sx,obj.sy,obj.r,0,6.283);
+      ctx.fill();
+    } else if(obj.type==='node'){
+      const sz=obj.r;
+      if(obj.group==='center'){
+        const grad=ctx.createRadialGradient(obj.sx,obj.sy,0,obj.sx,obj.sy,sz*2);
+        grad.addColorStop(0,'rgba(255,255,255,0.9)');
+        grad.addColorStop(0.4,obj.color);
+        grad.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath();
+        ctx.arc(obj.sx,obj.sy,sz*2,0,6.283);
+        ctx.fill();
+      } else {
+        const grad=ctx.createRadialGradient(obj.sx,obj.sy,0,obj.sx,obj.sy,sz*1.5);
+        grad.addColorStop(0,'rgba(255,255,255,0.7)');
+        grad.addColorStop(0.5,obj.color);
+        grad.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath();
+        ctx.arc(obj.sx,obj.sy,sz*1.5,0,6.283);
+        ctx.fill();
+      }
+      // Label on hover
+      if(obj.isHover && obj.label){
+        ctx.fillStyle='#fff';
+        ctx.font='bold 12px Arial';
+        ctx.textAlign='center';
+        ctx.fillText(obj.label, obj.sx, obj.sy-sz-10);
+      }
+    }
+  });
+
+  ctx.globalAlpha=1;
+}
+
+// Glow-Sprite Helper (for compatibility)
+const spriteCache = {};
+function hexA(hex, a){ const m = hex.replace('#','').match(/.{2}/g)||['5b','8c','ff']; const rgb = m.map(x=>parseInt(x,16)); return 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')'; }
+function glowSprite(color){
+  if(spriteCache[color]) return spriteCache[color];
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0, 'rgba(255,255,255,0.95)');
+  gr.addColorStop(0.22, hexA(color,0.9));
+  gr.addColorStop(0.55, hexA(color,0.28));
+  gr.addColorStop(1, hexA(color,0));
+  g.fillStyle = gr;
+  g.fillRect(0,0,64,64);
+  return spriteCache[color]=c;
+}
+function dot(ctx, x, y, r, color, alpha){
+  if(alpha<=0) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  const s = r*4;
+  ctx.drawImage(glowSprite(color), x-s/2, y-s/2, s, s);
+  ctx.globalAlpha = 1;
+}
+
+function brainLoop(){ brainDraw(); brainAnim=requestAnimationFrame(brainLoop); }
+function stopBrain(){ if(brainAnim){ cancelAnimationFrame(brainAnim); brainAnim=null; } }
+
+function resizeBrain(){
+  if(!brainCanvas) return;
+  const rect = brainCanvas.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  brainW = rect.width; brainH = rect.height;
+  brainCanvas.width = Math.round(brainW*dpr); brainCanvas.height = Math.round(brainH*dpr);
+  brainCtx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function renderBrain(){
+  brainCanvas = document.getElementById('brainCanvas');
+  if(!brainCanvas) return;
+  brainCtx = brainCanvas.getContext('2d');
+  resizeBrain();
+  buildNeuralNetwork();
+  if(!brainAnim) brainLoop();
+
+  // Hover detection (simplified)
+  if(brainCanvas && !brainCanvas._hoverSet){
+    brainCanvas._hoverSet = true;
+    brainCanvas.addEventListener('mousemove', e => {
+      const rect = brainCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      hoverNode = null;
+      brainNodes.forEach(n => {
+        // Simple 2D distance for hover (nodes in range ~50-100px)
+        const dx = n.x - (mx-brainW/2)/100;
+        const dy = n.y - (my-brainH/2)/100;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < 80) hoverNode = n;
+      });
+    });
+  }
+}
+function addFactFromUI(){
+  const cat=document.getElementById('factCat').value;
+  const val=document.getElementById('factVal').value.trim();
+  if(!val) return toast('Bitte eine Info eingeben');
+  data.brain.push({ category:cat, value:val });
+  save(); document.getElementById('factVal').value=''; buildNeuralNetwork(); toast('Zum Netzwerk hinzugefügt ✔');
+}
+function delFact(idx){ data.brain.splice(idx,1); save(); }
+function toggleBrainFullscreen(){
+  const st=document.getElementById('brainStage'); if(!st) return;
+  st.classList.toggle('fs');
+  if(!brainAnim) renderBrain();
+  setTimeout(()=>{ resizeBrain(); }, 60);
+}
+window.addEventListener('resize', () => { if(brainAnim) resizeBrain(); });
+window.addEventListener('keydown', (e) => { if(e.key==='Escape'){ const st=document.getElementById('brainStage'); if(st && st.classList.contains('fs')){ st.classList.remove('fs'); setTimeout(()=>{ resizeBrain(); }, 60); } } });
+
+// ---------------- Projekte ----------------
+const STATUS_BADGE = { 'Planung':'badge-blue', 'In Arbeit':'warn', 'Fast fertig':'badge-green', 'Abgeschlossen':'badge-green' };
+const STATUS_PROGRESS = { 'Planung':15, 'In Arbeit':50, 'Fast fertig':85, 'Abgeschlossen':100 };
+function renderProjects() {
+  document.getElementById('projCount').textContent = data.projects.length;
+  document.getElementById('projEarn').textContent = money(data.projects.reduce((s,p)=>s+(p.earnings||0),0));
+  document.getElementById('projectList').innerHTML = data.projects.length
+    ? data.projects.map((p,i) => `
+      <div class="card stack">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
+          <div class="card-title" style="margin:0;">${esc(p.name)}</div>
+          <button class="del-btn" onclick="delProject(${i})">✕</button>
+        </div>
+        <span class="badge ${STATUS_BADGE[p.status]||'badge-blue'}"><span class="dot"></span>${esc(p.status)}</span>
+        <div class="progress-track"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
+        <div class="stat-label">Fortschritt: ${p.progress||0}%</div>
+        <div style="color:var(--primary);font-weight:700;">${money(p.earnings||0)} Verdienst</div>
+      </div>`).join('')
+    : '<div class="empty-hint">Noch keine Projekte</div>';
+}
+function addProject() {
+  const name = document.getElementById('projName').value.trim();
+  if (!name) return toast('Projektname eingeben');
+  const status = document.getElementById('projStatus').value;
+  const earnings = parseFloat(document.getElementById('projEarnings').value) || 0;
+  data.projects.push({ name, status, progress: STATUS_PROGRESS[status]||0, earnings });
+  save(); document.getElementById('projName').value=''; document.getElementById('projEarnings').value='';
+  renderProjects(); renderAnalytics(); toast('Projekt hinzugefügt ✔');
+}
+function delProject(i) { data.projects.splice(i,1); save(); renderProjects(); renderAnalytics(); }
+
+// ---------------- Kunden ----------------
+const CLIENT_BADGE = { 'Neu':'badge-blue', 'Verhandlung':'warn', 'Aktiv':'badge-green', 'Abgelehnt':'neu' };
+function renderClients() {
+  document.getElementById('cliCount').textContent = data.clients.length;
+  document.getElementById('cliActive').textContent = data.clients.filter(c=>c.status==='Aktiv').length;
+  document.getElementById('cliNego').textContent = data.clients.filter(c=>c.status==='Verhandlung').length;
+  document.getElementById('clientList').innerHTML = data.clients.length
+    ? data.clients.map((c,i) => `
+      <tr>
+        <td class="cell-title">${esc(c.name)}</td>
+        <td class="cell-sub">${esc(c.contact)||'—'}</td>
+        <td><select onchange="setClientStatus(${i}, this.value)" style="width:auto;min-width:130px;padding:6px 10px;">
+          ${['Neu','Verhandlung','Aktiv','Abgelehnt'].map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('')}
+        </select></td>
+        <td class="right"><button class="del-btn" onclick="delClient(${i})">✕</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4"><div class="empty-hint" style="padding:8px 0;">Noch keine Kunden</div></td></tr>';
+}
+function addClient() {
+  const name = document.getElementById('cliName').value.trim();
+  if (!name) return toast('Kundenname eingeben');
+  data.clients.push({ name, contact: document.getElementById('cliContact').value.trim(), status: document.getElementById('cliStatus').value });
+  save(); document.getElementById('cliName').value=''; document.getElementById('cliContact').value='';
+  renderClients(); renderAnalytics(); toast('Kunde hinzugefügt ✔');
+}
+function setClientStatus(i, s) { data.clients[i].status = s; save(); renderClients(); }
+function delClient(i) { data.clients.splice(i,1); save(); renderClients(); renderAnalytics(); }
+
+// ---------------- Atlas Chat (echte KI + Sprache) ----------------
+const ATLAS_SYSTEM =
+`Du bist Atlas, der persönliche KI-Assistent und "Mitarbeiter" von Bilal (14 Jahre, Schüler & Jung-Unternehmer).
+Sprich locker, freundlich und motivierend auf Deutsch. Halte Antworten kurz (1-3 Sätze), da sie auch vorgelesen werden.
+Du hilfst Bilal, sein Dashboard zu pflegen. Wenn er dir etwas nennt, das gespeichert werden soll
+(Einnahme, Ausgabe, Website + Besucherzahl, Kunde, Projekt, oder Profil-Angaben), dann hänge ans ENDE deiner
+Antwort GENAU EINEN Codeblock mit den Aktionen an. Erkläre im normalen Text kurz, was du eingetragen hast,
+aber schreibe das JSON NICHT in den Fließtext.
+Format:
+\`\`\`json
+{"actions":[{"type":"add_income","description":"Website verkauft","amount":300}]}
+\`\`\`
+Erlaubte Aktionen:
+- add_income {description, amount}
+- add_expense {description, amount}
+- add_website {name, url, visits}
+- update_website_visits {name, visits}
+- add_client {name, contact, status}  (status: Neu | Verhandlung | Aktiv | Abgelehnt)
+- add_project {name, status, earnings}  (status: Planung | In Arbeit | Fast fertig | Abgeschlossen)
+- set_profile {field, value}  (field: name | who | goals | interests | birthday)
+- add_brain {category, value}  (persönliche Info fürs "Über mich"-Netzwerk; category z.B. Interessen | Hobbys | Ziele | Lieblingsfarbe | Skills | Lieblingsessen | Sonstiges)
+Wenn Bilal etwas Persönliches über sich erzählt (Lieblingsfarbe, Hobby, Interesse, Ziel), nutze add_brain.
+Wenn keine Speicher-Aktion nötig ist, lass den JSON-Block komplett weg.`;
+
+function dataContext() {
+  const inc = monthTotal(data.income), exp = monthTotal(data.expenses);
+  return `Aktueller Stand: Einnahmen diesen Monat ${money(inc)}, Ausgaben ${money(exp)}. `
+    + `Websites: ${data.websites.map(w=>w.name+' ('+w.visits+')').join(', ')||'keine'}. `
+    + `Projekte: ${data.projects.map(p=>p.name+' – '+p.status).join(', ')||'keine'}. `
+    + `Kunden: ${data.clients.length}. Profil: ${data.profile.name}, ${calcAge()} Jahre.`;
+}
+
+function addChat(role, text) {
+  const box = document.getElementById('chatBox');
+  box.insertAdjacentHTML('beforeend', `<div class="chat-msg ${role}">${esc(text)}</div>`);
+  box.scrollTop = box.scrollHeight;
+}
+
+function executeAction(a) {
+  if (!a || !a.type) return;
+  const num = v => { const n = parseFloat(String(v).replace(',','.')); return isNaN(n)?0:n; };
+  switch (a.type) {
+    case 'add_income': data.income.push({ description: a.description||'Einnahme', amount: num(a.amount), date: todayStr() }); break;
+    case 'add_expense': data.expenses.push({ description: a.description||'Ausgabe', amount: num(a.amount), date: todayStr() }); break;
+    case 'add_website': data.websites.push({ name: a.name||'Website', url: a.url||'', visits: parseInt(a.visits)||0, prevVisits: 0, date: todayStr() }); break;
+    case 'update_website_visits': {
+      const w = data.websites.find(x => x.name.toLowerCase() === String(a.name||'').toLowerCase());
+      if (w) { w.prevVisits = w.visits||0; w.visits = parseInt(a.visits)||0; }
+      else data.websites.push({ name: a.name||'Website', url:'', visits: parseInt(a.visits)||0, prevVisits: 0, date: todayStr() });
+      break;
+    }
+    case 'add_client': data.clients.push({ name: a.name||'Kunde', contact: a.contact||'', status: a.status||'Neu' }); break;
+    case 'add_project': data.projects.push({ name: a.name||'Projekt', status: a.status||'Planung', progress: STATUS_PROGRESS[a.status]||15, earnings: num(a.earnings) }); break;
+    case 'set_profile': if (['name','who','goals','interests','birthday'].includes(a.field)) data.profile[a.field] = a.value; break;
+    case 'add_brain': if (a.value) data.brain.push({ category: a.category || 'Sonstiges', value: a.value }); break;
+  }
+}
+
+function extractActions(raw) {
+  const m = raw.match(/```json\s*([\s\S]*?)```/i);
+  let actions = [], text = raw;
+  if (m) {
+    try { const obj = JSON.parse(m[1].trim()); if (Array.isArray(obj)) actions = obj; else actions = obj.actions || []; } catch(e) {}
+    text = raw.replace(m[0], '').trim();
+  }
+  return { text: text || 'Erledigt ✅', actions };
+}
+
+function offlineAtlas(msg) {
+  const actions = [];
+  const amount = parseAmount(msg);
+  let text;
+  if (/(kunde|kunden|client)\s+([A-Za-zÄÖÜäöüß]+)/i.test(msg)) {
+    const name = msg.match(/(?:kunde|kunden|client)\s+([A-Za-zÄÖÜäöüß]+)/i)[1];
+    const status = /aktiv/i.test(msg) ? 'Aktiv' : /verhandl/i.test(msg) ? 'Verhandlung' : /abgelehnt/i.test(msg) ? 'Abgelehnt' : 'Neu';
+    actions.push({ type:'add_client', name, contact:'', status });
+    text = `Kunde „${name}" (${status}) eingetragen ✅`;
+  } else if (/website|webseite|seite/i.test(msg) && amount) {
+    const nm = msg.match(/(?:website|webseite|seite)\s+([A-Za-zÄÖÜäöüß0-9\.\-]+)/i);
+    actions.push({ type:'add_website', name: nm?nm[1]:'Website', url:'', visits: amount });
+    text = `Website mit ${amount} Besuchen eingetragen ✅`;
+  } else if (amount && /(verkauf|einnahme|verdient|bekommen|€|euro)/i.test(msg)) {
+    actions.push({ type:'add_income', description: msg, amount });
+    text = `Erledigt ✅ ${money(amount)} als Einnahme gebucht. Weiter so!`;
+  } else if (amount && /(ausgabe|gekauft|bezahlt|kosten|ausgegeben)/i.test(msg)) {
+    actions.push({ type:'add_expense', description: msg, amount });
+    text = `${money(amount)} als Ausgabe gebucht ✅`;
+  } else if (/lieblingsfarbe/i.test(msg)) {
+    const m = msg.match(/lieblingsfarbe\s*(?:ist|:)?\s*([A-Za-zÄÖÜäöüß\-]+)/i);
+    if (m) { actions.push({ type:'add_brain', category:'Lieblingsfarbe', value: m[1] }); text = 'Lieblingsfarbe „'+m[1]+'" ins Netzwerk aufgenommen ✅'; }
+    else text = 'Welche Farbe magst du am liebsten?';
+  } else if (/(mein|meine)\s+hobby/i.test(msg)) {
+    const m = msg.match(/hobby\s*(?:ist|:)?\s*(.+)/i);
+    if (m) { actions.push({ type:'add_brain', category:'Hobbys', value: m[1].trim() }); text = 'Hobby „'+m[1].trim()+'" hinzugefügt ✅'; } else text = 'Welches Hobby denn?';
+  } else if (/interessiere mich für|mein interesse/i.test(msg)) {
+    const m = msg.match(/(?:für|interesse\s*(?:ist|:)?)\s*(.+)/i);
+    if (m) { actions.push({ type:'add_brain', category:'Interessen', value: m[1].trim() }); text = 'Interesse „'+m[1].trim()+'" hinzugefügt ✅'; } else text = 'Wofür interessierst du dich?';
+  } else if (/hallo|hi|hey|moin|servus/i.test(msg)) {
+    text = 'Hey Bilal! Erzähl mir, was du geschafft hast — ich trag es ein.';
+  } else {
+    text = 'Tipp: Für echtes KI-Verständnis trag deinen Claude-Key in den Einstellungen ein. Sonst nenn mir z.B. „150€ verdient" oder „neuer Kunde Max aktiv".';
+  }
+  return { text, actions };
+}
+
+async function callClaude() {
+  const s = data.settings;
+  const history = data.chat.slice(-16).map(m => ({ role: m.role, content: m.content }));
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': s.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: s.model || 'claude-haiku-4-5-20251001',
+      max_tokens: 700,
+      system: ATLAS_SYSTEM + '\n\n' + dataContext(),
+      messages: history
+    })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message || 'API-Fehler');
+  return (json.content || []).map(c => c.text || '').join('').trim();
+}
+
+let atlasBusy = false;
+async function sendAtlas(fromVoice) {
+  const input = document.getElementById('atlasInput');
+  const msg = input.value.trim();
+  if (!msg || atlasBusy) return;
+  input.value = '';
+  addChat('me', msg);
+  data.chat.push({ role: 'user', content: msg });
+
+  const hasKey = (data.settings.apiKey || '').startsWith('sk-');
+  let reply, actions = [];
+
+  if (hasKey) {
+    atlasBusy = true;
+    const box = document.getElementById('chatBox');
+    box.insertAdjacentHTML('beforeend', `<div class="chat-msg atlas typing" id="typing">Atlas denkt nach…</div>`);
+    box.scrollTop = box.scrollHeight;
+    try {
+      const raw = await callClaude();
+      const parsed = extractActions(raw);
+      reply = parsed.text; actions = parsed.actions;
+    } catch (e) {
+      reply = '⚠️ Konnte die KI nicht erreichen: ' + e.message + ' (Prüfe deinen API-Key oben & dein Internet.)';
+      const st = document.getElementById('atlasKeyState');
+      if (st && /invalid|api.?key|authenticat|401|permission/i.test(e.message)) { st.textContent = '✗ Key ungültig — bitte korrigieren'; st.style.color = 'var(--danger)'; }
+    }
+    const t = document.getElementById('typing'); if (t) t.remove();
+    atlasBusy = false;
+  } else {
+    const off = offlineAtlas(msg);
+    reply = off.text; actions = off.actions;
+  }
+
+  actions.forEach(executeAction);
+  if (actions.length) { refreshAll(); renderProfile(); if (brainCanvas) buildBrain(); }
+  data.chat.push({ role: 'assistant', content: reply });
+  if (data.chat.length > 40) data.chat = data.chat.slice(-40);
+  save();
+  addChat('atlas', reply);
+  if (data.settings.speakReplies && (fromVoice || liveMode || document.getElementById('atlas').classList.contains('active'))) speak(reply);
+}
+
+// ---------------- Sprache ----------------
+let recog = null, listening = false, liveMode = false;
+function speechSupported() { return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+function setMicUI(on) { const b = document.getElementById('micBtn'); if (b) b.classList.toggle('listening', on); }
+
+function startListening(auto) {
+  if (listening) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast('Spracheingabe geht nur in Chrome, Edge oder Opera');
+  recog = new SR();
+  recog.lang = 'de-DE'; recog.interimResults = false; recog.maxAlternatives = 1;
+  listening = true; setMicUI(true);
+  recog.onresult = ev => { document.getElementById('atlasInput').value = ev.results[0][0].transcript; };
+  recog.onerror = ev => {
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      liveMode = false; const lb = document.getElementById('liveBtn'); if (lb) { lb.classList.remove('btn-primary'); lb.classList.add('btn-secondary'); lb.textContent = '🎙 Live-Gespräch starten'; }
+      toast('Mikrofon blockiert. Bei lokal geöffneten Dateien (file://) erlauben Browser das Mikro oft nicht — dafür müsste die Seite über https laufen.');
+    } else if (ev.error === 'network') {
+      toast('Sprachdienst nicht erreichbar (braucht Internet, oft nur über https).');
+    }
+  };
+  recog.onend = () => {
+    listening = false; setMicUI(false);
+    const t = document.getElementById('atlasInput').value.trim();
+    if (t) sendAtlas(true);
+    else if (liveMode) setTimeout(() => { if (liveMode) startListening(true); }, 400);
+  };
+  try { recog.start(); } catch(e) { listening = false; setMicUI(false); }
+}
+
+function pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  if (data.settings.voiceName) { const v = voices.find(x => x.name === data.settings.voiceName); if (v) return v; }
+  const de = voices.filter(v => /de[-_]/i.test(v.lang));
+  const pool = de.length ? de : voices;
+  if (!pool.length) return null;
+  const pref = data.settings.voice;
+  const male = /(male|mann|männ|stefan|hans|markus|klaus|bernd|viktor|daniel|florian|yannick|german male|deutch male)/i;
+  const female = /(female|frau|weib|katja|hedda|marlene|petra|anna|vicki|german female|deutch female)/i;
+  const robot = /(google|robot|neural|synthesized|computer)/i;
+  let v;
+  if (pref === 'male') {
+    v = pool.find(x => male.test(x.name) && !x.name.includes('female'));
+    if (!v) v = pool.find(x => x.name.includes('Google') && !x.name.includes('female'));
+  } else if (pref === 'female') {
+    v = pool.find(x => female.test(x.name));
+    if (!v) v = pool.find(x => x.name.includes('Google') && !x.name.includes('male'));
+  } else if (pref === 'robot') {
+    v = pool.find(x => robot.test(x.name));
+  }
+  return v || pool[0];
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) { if (liveMode) startListening(true); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text).replace(/[*_`#>\[\]✅⚠️🚀]/g, ''));
+    u.lang = 'de-DE';
+    u.rate = { slow: 0.85, normal: 1, fast: 1.25 }[data.settings.speed] || 1;
+    u.pitch = { male: 0.5, female: 1.4, robot: 0.3, neutral: 1 }[data.settings.voice] || 1;
+    u.volume = (data.settings.volume != null ? data.settings.volume : 75) / 100;
+    const v = pickVoice(); if (v) u.voice = v;
+    u.onend = () => { if (liveMode) startListening(true); };
+    speechSynthesis.speak(u);
+  } catch(e) { if (liveMode) startListening(true); }
+}
+
+function toggleLive() {
+  liveMode = !liveMode;
+  const btn = document.getElementById('liveBtn');
+  btn.classList.toggle('btn-primary', liveMode);
+  btn.classList.toggle('btn-secondary', !liveMode);
+  btn.textContent = liveMode ? '⏹ Live-Gespräch beenden' : '🎙 Live-Gespräch starten';
+  if (liveMode) {
+    if (!speechSupported()) { liveMode = false; btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary'); btn.textContent = '🎙 Live-Gespräch starten'; return toast('Sprache geht nur in Chrome, Edge oder Opera'); }
+    toast('Live-Gespräch an — sprich einfach!');
+    startListening(true);
+  } else {
+    try { speechSynthesis.cancel(); if (recog) recog.stop(); } catch(e) {}
+    setMicUI(false);
+  }
+}
+
+function updateAtlasStatus() {
+  const el = document.getElementById('atlasStatus');
+  if (!el) return;
+  const key = data.settings.apiKey || '';
+  const hasKey = key.startsWith('sk-');
+  el.textContent = hasKey ? 'Atlas bereit — KI verbunden' : 'Atlas bereit (kostenloser Offline-Modus)';
+  const inp = document.getElementById('atlasKeyInput');
+  if (inp && document.activeElement !== inp) inp.value = key;
+  const st = document.getElementById('atlasKeyState');
+  if (st) {
+    if (!key) { st.textContent = 'Kein Key · Offline-Modus'; st.style.color = 'var(--text-dim)'; }
+    else if (hasKey) { st.textContent = '✓ Key gespeichert'; st.style.color = 'var(--primary)'; }
+    else { st.textContent = 'Ungültiges Format (sk-…)'; st.style.color = 'var(--warn-text)'; }
+  }
+}
+function saveKeyFromAtlas() {
+  const el = document.getElementById('atlasKeyInput');
+  const v = el.value.trim();
+  data.settings.apiKey = v; save();
+  el.value = '';
+  updateAtlasStatus();
+  const setInp = document.getElementById('setApiKey'); if (setInp) setInp.value = v;
+  toast(v.startsWith('sk-') ? 'API-Key aktiviert ✔' : 'Bitte gültigen Key (sk-…) eingeben');
+}
+
+const ATLAS_GREETING = 'Hi Bilal! Ich bin Atlas, dein Assistent. Sag oder schreib mir einfach, was du gemacht hast — z.B. „Ich habe eine Website für 300€ verkauft" oder „neuer Kunde Max, Status aktiv" — und ich trage alles für dich ein.';
+function renderChat() {
+  const box = document.getElementById('chatBox');
+  if (!box) return;
+  box.innerHTML = data.chat.length
+    ? data.chat.map(m => `<div class="chat-msg ${m.role === 'user' ? 'me' : 'atlas'}">${esc(m.content)}</div>`).join('')
+    : `<div class="chat-msg atlas">${esc(ATLAS_GREETING)}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// ---------------- Einstellungen ----------------
+function hexToRgb(hex) {
+  const m = hex.replace('#','').match(/.{2}/g);
+  return m ? m.map(x => parseInt(x,16)).join(', ') : '0, 169, 123';
+}
+function setPrimary(hex) {
+  document.documentElement.style.setProperty('--primary', hex);
+  document.documentElement.style.setProperty('--primary-rgb', hexToRgb(hex));
+  data.settings.primaryColor = hex; save();
+  document.getElementById('customColor').value = hex;
+  document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('active', o.dataset.color === hex));
+}
+document.querySelector('.color-picker').addEventListener('click', e => {
+  const o = e.target.closest('.color-option'); if (o) setPrimary(o.dataset.color);
+});
+function toggleSetting(key, el) { el.classList.toggle('active'); data.settings[key] = el.classList.contains('active'); save(); }
+function setBrainColor(v) { data.settings.brainColor = v; save(); }
+function populateVoices() {
+  const sel = document.getElementById('setVoiceName');
+  if (!sel || !('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  const de = voices.filter(v => /de[-_]/i.test(v.lang));
+  const list = de.length ? de : voices;
+  sel.innerHTML = '<option value="">Automatisch (nach Typ)</option>' +
+    list.map(v => `<option value="${esc(v.name)}">${esc(v.name)}${/de[-_]/i.test(v.lang)?'':' — '+v.lang}</option>`).join('');
+  sel.value = data.settings.voiceName || '';
+}
+function saveSettingsFromUI() {
+  const s = data.settings;
+  s.font = document.getElementById('setFont').value;
+  applyFont();
+  s.language = document.getElementById('setLang').value;
+  s.currency = document.getElementById('setCurrency').value;
+  s.timezone = document.getElementById('setTz').value;
+  s.voice = document.getElementById('setVoice').value;
+  s.voiceName = document.getElementById('setVoiceName').value;
+  s.volume = parseInt(document.getElementById('setVolume').value);
+  s.speed = document.getElementById('setSpeed').value;
+  s.mode = document.getElementById('setMode').value;
+  s.model = document.getElementById('setModel').value;
+  save();
+}
+function saveApiKey() {
+  const v = document.getElementById('setApiKey').value.trim();
+  data.settings.apiKey = v; save();
+  const st = document.getElementById('apiStatus');
+  if (v.startsWith('sk-')) { st.textContent = 'Verbunden (Key lokal gespeichert)'; st.style.color = 'var(--primary)'; toast('API-Key gespeichert ✔'); }
+  else if (v === '') { st.textContent = 'Nicht verbunden'; st.style.color = 'var(--danger)'; }
+  else { st.textContent = 'Ungültiges Format (muss mit sk- beginnen)'; st.style.color = 'var(--warn-text)'; }
+  updateAtlasStatus();
+}
+function renderSettings() {
+  const s = data.settings;
+  document.getElementById('setFont').value = s.font || 'system';
+  document.getElementById('setBrainColor').value = s.brainColor || '#f0972b';
+  document.getElementById('setLang').value = s.language;
+  document.getElementById('setCurrency').value = s.currency;
+  document.getElementById('setTz').value = s.timezone;
+  document.getElementById('setVoice').value = s.voice;
+  populateVoices();
+  document.getElementById('setVolume').value = s.volume;
+  document.getElementById('volLabel').textContent = s.volume + '%';
+  document.getElementById('setSpeed').value = s.speed;
+  document.getElementById('setMode').value = s.mode;
+  document.getElementById('setModel').value = s.model || 'claude-haiku-4-5-20251001';
+  document.getElementById('setApiKey').value = s.apiKey;
+  document.getElementById('tgTracking').classList.toggle('active', s.autoTracking);
+  document.getElementById('tgReports').classList.toggle('active', s.autoReports);
+  document.getElementById('tgBackup').classList.toggle('active', s.autoBackup);
+  document.getElementById('tgSpeak').classList.toggle('active', s.speakReplies !== false);
+  document.getElementById('customColor').value = s.primaryColor;
+  document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('active', o.dataset.color === s.primaryColor));
+  const st = document.getElementById('apiStatus');
+  if ((s.apiKey || '').startsWith('sk-')) { st.textContent = 'Verbunden (Key lokal gespeichert)'; st.style.color = 'var(--primary)'; }
+  else { st.textContent = 'Nicht verbunden'; st.style.color = 'var(--danger)'; }
+}
+
+// ---------------- Daten ----------------
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'atlas-dashboard-' + todayStr() + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Daten exportiert ✔');
+}
+function importData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const imported = JSON.parse(r.result);
+        data = Object.assign(structuredClone(DEFAULT_DATA), imported,
+          { settings: Object.assign({}, DEFAULT_DATA.settings, imported.settings || {}) });
+        save(); applyTheme(); refreshAll(); renderProfile(); renderSettings(); renderChat(); updateAtlasStatus();
+        toast('Daten importiert ✔');
+      } catch (err) { toast('Fehler beim Import'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function clearData() {
+  if (!confirm('⚠️ Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden!')) return;
+  localStorage.removeItem(KEY);
+  data = structuredClone(DEFAULT_DATA);
+  applyTheme(); refreshAll(); renderProfile(); renderSettings(); renderChat(); updateAtlasStatus();
+  toast('Alle Daten gelöscht');
+}
+
+// ---------------- Schriftart ----------------
+const FONTS = {
+  system: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif",
+  segoe: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  georgia: "Georgia, 'Times New Roman', serif",
+  trebuchet: "'Trebuchet MS', 'Segoe UI', sans-serif",
+  mono: "'Consolas', 'SF Mono', 'Courier New', monospace"
+};
+function applyFont() {
+  document.documentElement.style.setProperty('--font', FONTS[data.settings.font] || FONTS.system);
+}
+
+// ---------------- PIN-Sperre ----------------
+// Gespeichert ist NUR ein iterierter, gesalzener SHA-256-Fingerabdruck des PINs —
+// der echte PIN steht nirgends im Quelltext.
+const PIN_SALT = 'atlas::orbion::v1::7f3a9c';
+const PIN_ITER = 60000;
+const DEFAULT_PIN_HASH = '189f86731a1fcf55446baf2cc3eb58fbb663048a7d15ccfb7bff10c5fc0af2b3';
+
+function sha256Bytes(msg) {
+  const K = new Uint32Array([
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  const l = msg.length, bitLen = l * 8;
+  const total = ((l + 8 + 64) >> 6) << 6;
+  const m = new Uint8Array(total); m.set(msg); m[l] = 0x80;
+  const dv = new DataView(m.buffer);
+  dv.setUint32(total - 4, bitLen >>> 0, false);
+  dv.setUint32(total - 8, Math.floor(bitLen / 0x100000000) >>> 0, false);
+  const w = new Uint32Array(64);
+  const rotr = (x,n) => (x>>>n)|(x<<(32-n));
+  for (let off=0; off<total; off+=64) {
+    for (let i=0;i<16;i++) w[i] = dv.getUint32(off+i*4, false);
+    for (let i=16;i<64;i++){
+      const s0 = rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3);
+      const s1 = rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10);
+      w[i] = (w[i-16]+s0+w[i-7]+s1)|0;
+    }
+    let a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+    for (let i=0;i<64;i++){
+      const S1 = rotr(e,6)^rotr(e,11)^rotr(e,25);
+      const ch = (e&f)^(~e&g);
+      const t1 = (h+S1+ch+K[i]+w[i])|0;
+      const S0 = rotr(a,2)^rotr(a,13)^rotr(a,22);
+      const maj = (a&b)^(a&c)^(b&c);
+      const t2 = (S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+    }
+    h0=(h0+a)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;h5=(h5+f)|0;h6=(h6+g)|0;h7=(h7+h)|0;
+  }
+  const out = new Uint8Array(32), odv = new DataView(out.buffer);
+  [h0,h1,h2,h3,h4,h5,h6,h7].forEach((x,i) => odv.setUint32(i*4, x>>>0, false));
+  return out;
+}
+function toHex(u8) { return [...u8].map(b => b.toString(16).padStart(2,'0')).join(''); }
+function hashPin(pin) {
+  let buf = new TextEncoder().encode(PIN_SALT + pin);
+  for (let i=0;i<PIN_ITER;i++) buf = sha256Bytes(buf);
+  return toHex(buf);
+}
+function currentPinHash() { return localStorage.getItem('atlas-pin-hash') || DEFAULT_PIN_HASH; }
+function tryUnlock() {
+  const inp = document.getElementById('pinInput');
+  const err = document.getElementById('pinError');
+  if (!inp.value) return;
+  const btn = document.getElementById('pinBtn');
+  btn.textContent = 'Prüfe…';
+  setTimeout(() => {
+    const ok = hashPin(inp.value) === currentPinHash();
+    btn.textContent = 'Entsperren';
+    if (ok) {
+      sessionStorage.setItem('atlas-unlocked', '1');
+      document.getElementById('lockScreen').style.display = 'none';
+    } else {
+      err.style.display = 'block';
+      inp.value = '';
+      const card = document.getElementById('lockCard');
+      card.style.animation = 'none'; void card.offsetWidth; card.style.animation = 'shake .4s';
+    }
+  }, 20);
+}
+function initLock() {
+  const lock = document.getElementById('lockScreen');
+  if (sessionStorage.getItem('atlas-unlocked') === '1') { lock.style.display = 'none'; }
+  else { setTimeout(() => document.getElementById('pinInput').focus(), 50); }
+}
+function changePin() {
+  const el = document.getElementById('newPin');
+  const v = el.value.trim();
+  if (v.length < 4) return toast('PIN zu kurz (mind. 4 Zeichen)');
+  localStorage.setItem('atlas-pin-hash', hashPin(v));
+  el.value = '';
+  toast('PIN geändert ✔');
+}
+
+// ---------------- Init ----------------
+function applyTheme() {
+  const c = data.settings.primaryColor || '#00a97b';
+  document.documentElement.style.setProperty('--primary', c);
+  document.documentElement.style.setProperty('--primary-rgb', hexToRgb(c));
+}
+applyTheme();
+applyFont();
+initLock();
+renderAnalytics();
+updateAtlasStatus();
+renderChat();
+if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); populateVoices(); }; }
+</script>
+</body>
+</html>
