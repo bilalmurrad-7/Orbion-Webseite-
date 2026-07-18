@@ -981,56 +981,86 @@ function hexToRgbArray(hex) {
   return [r/255, g/255, b/255];
 }
 
-// Isometric 3D-Effekt Galaxie mit Stars, Pyramiden, Ringen und Nebulae
+// Ultra-Komplexe Galaxie: Hubs + Blätter + Ringe + Bursts + Nebulae (v7 Heavy)
+let galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
 function buildGalaxy(){
-  stars = []; rings = []; pyramids = []; nebulaClouds = [];
-
   let seed = 20260718;
   const R = () => { seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+  galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
 
-  // Nebula clouds (soft, layered particle clouds)
-  for(let i=0;i<18;i++){
-    const a = R()*6.283, d = 80+R()*700;
-    const z = (R()-0.5)*400;
-    nebulaClouds.push({
-      x: Math.cos(a)*d, y: Math.sin(a)*d, z: z,
-      size: 60+R()*180, opacity: 0.06+R()*0.1,
-      rotSpeed: (R()-0.5)*0.002, phase: R()*6.283
-    });
+  // ===== NEBULAE (19 große Nebel-Wolken) =====
+  for(let i=0;i<19;i++){
+    const a = R()*6.283, d = 100+R()*820;
+    galaxy.nebulae.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, r:50+R()*140, al:0.08+R()*0.15 });
   }
 
-  // Rings (tilted, 3D-looking ellipses with depth)
-  rings = [
-    { rx: 320, ry: 90, z: -40, rot: -0.25, opacity: 0.2, speed: 0.0008 },
-    { rx: 520, ry: 160, z: 0, rot: -0.15, opacity: 0.15, speed: 0.0012 },
-    { rx: 760, ry: 280, z: 50, rot: -0.35, opacity: 0.1, speed: 0.0005 }
+  // ===== RINGS (4 tilted, rotierende Ringe) =====
+  galaxy.rings = [
+    {rx:300,ry:100,rot:-0.35}, {rx:500,ry:160,rot:-0.25},
+    {rx:750,ry:280,rot:-0.40}, {rx:1000,ry:350,rot:-0.20}
   ];
 
-  // Stars (icosahedra-like with rotation)
-  const starCount = 280+Math.floor(R()*120);
-  for(let i=0;i<starCount;i++){
-    const a = R()*6.283, phi = Math.acos(R()*2-1), r = 140+Math.pow(R(),0.6)*850;
-    const x = Math.sin(phi)*Math.cos(a)*r, y = Math.sin(phi)*Math.sin(a)*r, z = Math.cos(phi)*r;
-    stars.push({
-      x: x, y: y, z: z,
-      size: 0.4+R()*1.8, opacity: 0.25+R()*0.75,
-      rotX: (R()-0.5)*0.03, rotY: (R()-0.5)*0.03, rotZ: (R()-0.5)*0.02,
-      twinkle: R()*6.283, points: 5+Math.floor(R()*3)
-    });
+  // ===== CORE RAYS (60 Kern-Strahlen für Drama) =====
+  for(let i=0;i<60;i++){
+    galaxy.rays.push({ a:R()*6.283, len:80+R()*450, al:0.03+R()*0.12 });
   }
 
-  // Pyramids/Crystals (tetrahedron-like geometric elements)
-  const pyramidCount = 55+Math.floor(R()*45);
-  for(let i=0;i<pyramidCount;i++){
-    const a = R()*6.283, d = 150+R()*750;
-    const z = (R()-0.5)*350;
-    pyramids.push({
-      x: Math.cos(a)*d, y: Math.sin(a)*d, z: z,
-      size: 6+R()*14, opacity: 0.5+R()*0.4,
-      rotX: R()*6.283, rotY: R()*6.283, rotZ: R()*6.283,
-      rotSpeedX: R()*0.012, rotSpeedY: R()*0.012, rotSpeedZ: R()*0.008,
-      wireframe: R()<0.25
-    });
+  // ===== CLUSTER HUBS + BLÄTTER (50 Hubs für massive Komplexität) =====
+  const hubs=[];
+  for(let i=0;i<50;i++){
+    const a=R()*6.283, d=150+R()*850;
+    const h={ x:Math.cos(a)*d, y:Math.sin(a)*d, s:2.0+R()*2.8 };
+    hubs.push(h);
+    galaxy.dots.push({ x:h.x, y:h.y, s:h.s, white:true, tw:R()*6.28 });
+
+    // Blätter um jeden Hub (12-30 pro Hub)
+    const nl=12+Math.floor(R()*28), full=R()<0.6, spread=full?6.283:(0.7+R()*2.4), start=R()*6.283;
+    for(let j=0;j<nl;j++){
+      const la = full ? R()*6.283 : start+(j/nl-0.5)*spread;
+      const ld = 14+R()*68;
+      const lx = h.x+Math.cos(la)*ld, ly = h.y+Math.sin(la)*ld;
+      galaxy.dots.push({ x:lx, y:ly, s:0.6+R()*1.5, white:R()<0.30, tw:R()*6.28 });
+      galaxy.links.push({ x1:h.x, y1:h.y, x2:lx, y2:ly, al:0.12 });
+
+      // Sub-Blätter (zweite Ebene!)
+      if(R()<0.25){
+        const sa=la+(R()-0.5)*0.3, sd=10+R()*32, sx=lx+Math.cos(sa)*sd, sy=ly+Math.sin(sa)*sd;
+        galaxy.dots.push({ x:sx, y:sy, s:0.5+R()*0.9, white:false, tw:R()*6.28 });
+        galaxy.links.push({ x1:lx, y1:ly, x2:sx, y2:sy, al:0.08 });
+      }
+    }
+  }
+
+  // Cluster-zu-Cluster Verbindungen (3 nächste Nachbarn)
+  for(let i=0;i<hubs.length;i++){
+    const ds=[];
+    for(let j=0;j<hubs.length;j++){
+      if(i===j) continue;
+      const dx=hubs[i].x-hubs[j].x, dy=hubs[i].y-hubs[j].y;
+      ds.push([dx*dx+dy*dy,j]);
+    }
+    ds.sort((a,b)=>a[0]-b[0]);
+    for(let k=0;k<3;k++){
+      const j=ds[k][1];
+      if(i<j) galaxy.links.push({ x1:hubs[i].x, y1:hubs[i].y, x2:hubs[j].x, y2:hubs[j].y, al:0.07 });
+    }
+  }
+
+  // ===== DANDELION BURSTS (14 pink Pusteblumen) =====
+  for(let i=0;i<14;i++){
+    const a=R()*6.283, d=260+R()*700;
+    const b={ x:Math.cos(a)*d, y:Math.sin(a)*d, rays:[] };
+    const nr=18+Math.floor(R()*32);
+    for(let j=0;j<nr;j++){
+      b.rays.push({ a:R()*6.283, l:24+R()*80, s:0.8+R()*1.5, tw:R()*6.28 });
+    }
+    galaxy.bursts.push(b);
+  }
+
+  // ===== DUST STARS (800 Sternenstaub überall) =====
+  for(let i=0;i<800;i++){
+    const a=R()*6.283, d=Math.pow(R(),0.65)*1050;
+    galaxy.dust.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, s:0.3+R()*1.1, tw:R()*6.28 });
   }
 }
 
@@ -1038,132 +1068,126 @@ function buildGalaxy(){
 function buildBrain() { /* Already initialized */ }
 function brainStep() { /* Animation in render loop */ }
 
-// Canvas-based Isometric 3D render loop
+// V7 Heavy-Komplexität Render (Ringe + Nebulae + Bursts + massive Struktur)
 function brainDraw(){
   const ctx = brainCtx; if(!ctx) return;
   brainTime += 0.016;
-
   ctx.clearRect(0, 0, brainW, brainH);
-  const color = brainColor();
-  const rgb = hexToRgbArray(color);
-  const globalRot = brainTime * 0.0006;
-  const csr = Math.cos(globalRot), snr = Math.sin(globalRot);
 
-  // Isometric projection helper
-  const iso = (x, y, z) => {
-    const rx = x * csr - y * snr;
-    const ry = x * snr + y * csr;
-    const isox = (rx - ry * 0.5) + brainW/2;
-    const isoy = (z + (rx + ry) * 0.25) + brainH/2;
-    return { sx: isox, sy: isoy, depth: z + ry };
-  };
+  const base = brainColor(), white='#ffffff', pink='#ff6584';
+  const rot = brainTime*0.005, csr = Math.cos(rot), snr = Math.sin(rot);
+  const W2S = (x, y) => [x+brainW/2, y+brainH/2];
+  const RW = (x, y) => W2S(x*csr-y*snr, x*snr+y*csr);
+  const lw = 1.2;
 
-  // Collect all renderable objects
-  const objects = [];
-
-  // Add nebula clouds
-  nebulaClouds.forEach(n => {
-    n.phase += n.rotSpeed;
-    const p = iso(n.x, n.y, n.z);
-    objects.push({ type: 'nebula', ...p, size: n.size, opacity: n.opacity });
+  // Render Nebeln (soft background)
+  galaxy.nebulae.forEach(n => {
+    const p = RW(n.x, n.y);
+    const grad = ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],n.r);
+    grad.addColorStop(0, hexA(base, n.al*0.8));
+    grad.addColorStop(0.6, hexA(base, n.al*0.3));
+    grad.addColorStop(1, hexA(base, 0));
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], n.r, 0, 6.283);
+    ctx.fill();
   });
 
-  // Add rings
-  rings.forEach(r => {
-    r.rot += r.speed;
-    for(let i=0;i<120;i++){
-      const angle = (i/120)*6.283 + r.rot;
-      const rx = Math.cos(angle)*r.rx, ry = Math.sin(angle)*r.ry;
-      const p = iso(rx, ry, r.z);
-      if(i % 3 === 0) objects.push({ type: 'ring', ...p, depth: p.depth, color });
-    }
+  // Orbit Ringe
+  const c0 = W2S(0, 0);
+  ctx.strokeStyle = hexA(base, 0.18);
+  ctx.lineWidth = lw;
+  galaxy.rings.forEach(rg => {
+    ctx.beginPath();
+    ctx.ellipse(c0[0], c0[1], rg.rx, rg.ry, rg.rot, 0, 6.283);
+    ctx.stroke();
   });
 
-  // Add stars
-  stars.forEach(s => {
-    s.rotX += s.rotX * 0.02;
-    s.rotY += s.rotY * 0.02;
-    const tw = 0.7 + 0.3 * Math.sin(brainTime * 1.3 + s.twinkle);
-    const p = iso(s.x, s.y, s.z);
-    objects.push({ type: 'star', ...p, size: s.size * tw, opacity: s.opacity * tw, points: s.points });
+  // Kern-Strahlen
+  galaxy.rays.forEach(r => {
+    const a = r.a + rot;
+    const p1 = W2S(Math.cos(a)*8, Math.sin(a)*8);
+    const p2 = W2S(Math.cos(a)*r.len, Math.sin(a)*r.len);
+    ctx.strokeStyle = hexA(white, r.al*0.8);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(p1[0], p1[1]);
+    ctx.lineTo(p2[0], p2[1]);
+    ctx.stroke();
   });
 
-  // Add pyramids
-  pyramids.forEach(p => {
-    p.rotX += p.rotSpeedX;
-    p.rotY += p.rotSpeedY;
-    p.rotZ += p.rotSpeedZ;
-    const pp = iso(p.x, p.y, p.z);
-    objects.push({ type: 'pyramid', ...pp, size: p.size, opacity: p.opacity, rotX: p.rotX, rotY: p.rotY, wireframe: p.wireframe });
+  // Cluster-Links
+  ctx.lineWidth = lw*0.6;
+  galaxy.links.forEach(l => {
+    const p1 = RW(l.x1, l.y1), p2 = RW(l.x2, l.y2);
+    ctx.strokeStyle = hexA(base, l.al*0.8);
+    ctx.beginPath();
+    ctx.moveTo(p1[0], p1[1]);
+    ctx.lineTo(p2[0], p2[1]);
+    ctx.stroke();
   });
 
-  // Central core glow
-  const core = iso(0, 0, 0);
-  const coreScale = 1 + 0.2 * Math.sin(brainTime * 0.8);
-  objects.push({ type: 'core', sx: core.sx, sy: core.sy, depth: 0, size: 28 * coreScale });
+  // Sternenstaub
+  galaxy.dust.forEach((d, i) => {
+    const p = RW(d.x, d.y);
+    const tw = 0.5 + 0.5*Math.sin(brainTime*1.3+d.tw);
+    dot(ctx, p[0], p[1], Math.max(0.3, d.s), base, 0.10+0.25*tw);
+  });
 
-  // Sort by depth (painter's algorithm)
-  objects.sort((a, b) => a.depth - b.depth);
+  // Cluster-Punkte
+  galaxy.dots.forEach(d => {
+    const p = RW(d.x, d.y);
+    const tw = 0.5 + 0.5*Math.sin(brainTime*1.6+d.tw);
+    dot(ctx, p[0], p[1], Math.max(0.4, d.s), d.white ? white : base, (d.white?0.6:0.36)+0.35*tw);
+  });
 
-  // Render objects
-  const r8 = Math.max(0,Math.min(255,Math.round(rgb[0]*255)));
-  const g8 = Math.max(0,Math.min(255,Math.round(rgb[1]*255)));
-  const b8 = Math.max(0,Math.min(255,Math.round(rgb[2]*255)));
-
-  objects.forEach(obj => {
-    ctx.globalAlpha = obj.opacity || 1;
-    if(obj.type === 'nebula'){
-      const grad = ctx.createRadialGradient(obj.sx, obj.sy, 0, obj.sx, obj.sy, obj.size);
-      grad.addColorStop(0, `rgba(${r8},${g8},${b8},0.15)`);
-      grad.addColorStop(0.5, `rgba(${r8},${g8},${b8},0.05)`);
-      grad.addColorStop(1, `rgba(${r8},${g8},${b8},0)`);
-      ctx.fillStyle = grad;
+  // Dandelion Bursts (pink)
+  galaxy.bursts.forEach(b => {
+    const bp = RW(b.x, b.y);
+    ctx.lineWidth = lw*0.6;
+    b.rays.forEach(r => {
+      const a = r.a + rot;
+      const pe = RW(b.x+Math.cos(a)*r.l, b.y+Math.sin(a)*r.l);
+      ctx.strokeStyle = hexA(pink, 0.14);
       ctx.beginPath();
-      ctx.arc(obj.sx, obj.sy, obj.size, 0, 6.283);
-      ctx.fill();
-    } else if(obj.type === 'ring'){
-      ctx.strokeStyle = `rgba(${r8},${g8},${b8},0.12)`;
-      ctx.lineWidth = 1;
-      ctx.fillStyle = 'transparent';
-      ctx.beginPath();
-      ctx.arc(obj.sx, obj.sy, 4, 0, 6.283);
+      ctx.moveTo(bp[0], bp[1]);
+      ctx.lineTo(pe[0], pe[1]);
       ctx.stroke();
-    } else if(obj.type === 'star'){
-      ctx.fillStyle = `rgba(255,255,255,${obj.opacity})`;
-      ctx.beginPath();
-      const angle = -Math.PI/2;
-      for(let i=0;i<obj.points*2;i++){
-        const a = angle + (i/obj.points)*Math.PI;
-        const r = i%2 ? obj.size*0.4 : obj.size;
-        const x = obj.sx + Math.cos(a)*r;
-        const y = obj.sy + Math.sin(a)*r;
-        if(i===0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fill();
-    } else if(obj.type === 'pyramid'){
-      ctx.fillStyle = `rgba(${r8},${g8},${b8},${obj.opacity})`;
-      if(obj.wireframe) ctx.strokeStyle = ctx.fillStyle;
-      ctx.beginPath();
-      const s = obj.size;
-      ctx.moveTo(obj.sx, obj.sy - s);
-      ctx.lineTo(obj.sx + s*0.85, obj.sy + s*0.5);
-      ctx.lineTo(obj.sx - s*0.85, obj.sy + s*0.5);
-      ctx.closePath();
-      obj.wireframe ? ctx.stroke() : ctx.fill();
-    } else if(obj.type === 'core'){
-      const grad = ctx.createRadialGradient(obj.sx, obj.sy, 0, obj.sx, obj.sy, obj.size);
-      grad.addColorStop(0, `rgba(255,255,255,0.8)`);
-      grad.addColorStop(0.3, `rgba(${r8},${g8},${b8},0.6)`);
-      grad.addColorStop(1, `rgba(${r8},${g8},${b8},0)`);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(obj.sx, obj.sy, obj.size, 0, 6.283);
-      ctx.fill();
-    }
+      const tw = 0.5 + 0.5*Math.sin(brainTime*2+r.tw);
+      dot(ctx, pe[0], pe[1], Math.max(0.4, r.s), pink, 0.32+0.4*tw);
+    });
+    dot(ctx, bp[0], bp[1], Math.max(0.8, 1.6), '#ffd3dc', 0.75);
   });
 
+  // Central glow
+  dot(ctx, brainW/2, brainH/2, 18, base, 0.8);
+  dot(ctx, brainW/2, brainH/2, 9, white, 1);
+
+  ctx.globalAlpha = 1;
+}
+
+// Glow-Sprite Helper
+const spriteCache = {};
+function hexA(hex, a){ const m = hex.replace('#','').match(/.{2}/g)||['5b','8c','ff']; const rgb = m.map(x=>parseInt(x,16)); return 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')'; }
+function glowSprite(color){
+  if(spriteCache[color]) return spriteCache[color];
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0, 'rgba(255,255,255,0.95)');
+  gr.addColorStop(0.22, hexA(color,0.9));
+  gr.addColorStop(0.55, hexA(color,0.28));
+  gr.addColorStop(1, hexA(color,0));
+  g.fillStyle = gr;
+  g.fillRect(0,0,64,64);
+  return spriteCache[color]=c;
+}
+function dot(ctx, x, y, r, color, alpha){
+  if(alpha<=0) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  const s = r*4;
+  ctx.drawImage(glowSprite(color), x-s/2, y-s/2, s, s);
   ctx.globalAlpha = 1;
 }
 
@@ -1180,10 +1204,10 @@ function resizeBrain(){
 
 function renderBrain(){
   brainCanvas = document.getElementById('brainCanvas');
-  if(!brainCanvas || brainCtx) return; // Only init once
+  if(!brainCanvas) return;
   brainCtx = brainCanvas.getContext('2d');
   resizeBrain();
-  buildGalaxy();
+  if(!galaxy.dots.length) buildGalaxy();
   if(!brainAnim) brainLoop();
 }
 function addFactFromUI(){
