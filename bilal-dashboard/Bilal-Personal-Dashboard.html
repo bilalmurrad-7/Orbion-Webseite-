@@ -831,23 +831,31 @@ function renderAnalytics() {
 
   document.getElementById('websiteList').innerHTML = data.websites.length
     ? data.websites.map((w,i) => `
-      <tr>
+      <tr data-website-id="${w.name}">
         <td><div class="cell-title">${esc(w.name)}</div><div class="cell-sub">${esc(w.url)||'—'}</div></td>
         <td>${trendBadge(w.visits||0, w.prevVisits||0)}</td>
         <td class="num" style="font-weight:600;">${w.visits}</td>
-        <td class="right"><button class="del-btn" style="color:var(--primary)" onclick="updateVisits(${i})">Besuche ⟳</button><button class="del-btn" onclick="delWebsite(${i})">Löschen</button></td>
+        <td class="right"><button class="del-btn" style="color:var(--primary)" onclick="updateVisitsByName('${w.name}')">Besuche ⟳</button><button class="del-btn" onclick="delWebsite(${i})">Löschen</button></td>
       </tr>`).join('')
     : '<tr><td colspan="4"><div class="empty-hint" style="padding:8px 0;">Keine Websites hinzugefügt</div></td></tr>';
 }
 function addWebsite() {
   const name = document.getElementById('wName').value.trim();
   const url = document.getElementById('wUrl').value.trim();
-  const visits = parseInt(document.getElementById('wVisits').value) || 0;
+  const visitsInput = document.getElementById('wVisits').value.trim();
   if (!name) return toast('Bitte einen Namen eingeben');
+  if (!url) return toast('Bitte eine URL eingeben');
+
+  const visits = visitsInput ? parseInt(visitsInput) : 0;
+  if(isNaN(visits) || visits < 0) return toast('Bitte eine gültige Besucherzahl eingeben (≥0)');
+
   data.websites.push({ name, url, visits, prevVisits: 0, date: todayStr() });
   save();
-  document.getElementById('wName').value = ''; document.getElementById('wUrl').value = ''; document.getElementById('wVisits').value = '';
-  renderAnalytics(); toast('Website hinzugefügt ✔');
+  document.getElementById('wName').value = '';
+  document.getElementById('wUrl').value = '';
+  document.getElementById('wVisits').value = '';
+  renderAnalytics();
+  toast('Website hinzugefügt ✔ · Klick "Besuche ⟳" um Zahlen zu aktualisieren');
 }
 function updateVisits(i) {
   const w = data.websites[i];
@@ -856,6 +864,19 @@ function updateVisits(i) {
   w.prevVisits = w.visits || 0;
   w.visits = parseInt(v) || 0;
   save(); renderAnalytics(); toast('Besuche aktualisiert ✔');
+}
+function updateVisitsByName(name) {
+  const w = data.websites.find(x => x.name === name);
+  if(!w) return toast('Website nicht gefunden');
+  const v = prompt(`Neue Besucherzahl für "${w.name}":`, w.visits || 0);
+  if (v === null) return;
+  w.prevVisits = w.visits || 0;
+  const newVisits = parseInt(v);
+  if(isNaN(newVisits)) return toast('Bitte eine Zahl eingeben');
+  w.visits = newVisits;
+  save();
+  renderAnalytics();
+  toast('Besuche aktualisiert ✔');
 }
 function delWebsite(i) { data.websites.splice(i,1); save(); renderAnalytics(); }
 
