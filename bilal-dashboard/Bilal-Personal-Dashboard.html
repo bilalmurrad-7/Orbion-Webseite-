@@ -1,918 +1,1056 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bilal Personal Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLAS — Bilal Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        :root {
-            --color-primary: #22c55e;
-        }
+  :root {
+    --primary: #22c55e;
+    --primary-rgb: 34, 197, 94;
+    --accent: #3b82f6;
+    --text: #e8e8e8;
+    --text-dim: rgba(232, 232, 232, 0.6);
+    --text-faint: rgba(232, 232, 232, 0.4);
+    --danger: #ef4444;
+    --danger-rgb: 239, 68, 68;
+  }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
-            color: #e0e0e0;
-            overflow: hidden;
-        }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #0f1620 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
 
-        #root {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-        }
+  /* Ambientes Hintergrundleuchten */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(circle at 20% 50%, rgba(var(--primary-rgb), 0.13) 0%, transparent 45%),
+      radial-gradient(circle at 82% 78%, rgba(99, 102, 241, 0.09) 0%, transparent 45%),
+      radial-gradient(circle at 62% 18%, rgba(59, 130, 246, 0.07) 0%, transparent 45%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 16px;
-        }
+  .container { display: flex; height: 100vh; position: relative; z-index: 1; }
 
-        .glass-button {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s;
-            background: linear-gradient(135deg, var(--color-primary), #16a34a);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
-        }
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: rgba(15, 15, 15, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(var(--primary-rgb), 0.2);
+    padding: 28px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .logo { font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+  .sidebar-subtitle {
+    font-size: 11px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin: 4px 0 18px;
+  }
+  .nav-items { display: flex; flex-direction: column; gap: 8px; }
+  .nav-item {
+    padding: 12px 16px; border-radius: 10px; cursor: pointer;
+    transition: all 0.25s ease; font-size: 14px;
+    display: flex; align-items: center; gap: 11px;
+    color: rgba(232, 232, 232, 0.7);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: rgba(var(--primary-rgb), 0.3);
+    color: var(--primary);
+  }
+  .nav-item.active {
+    background: rgba(var(--primary-rgb), 0.18);
+    border-color: rgba(var(--primary-rgb), 0.5);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .nav-emoji { font-size: 16px; }
+  .nav-separator { height: 1px; background: rgba(var(--primary-rgb), 0.12); margin: 12px 4px; }
 
-        .glass-button:hover {
-            box-shadow: 0 6px 25px rgba(34, 197, 94, 0.4);
-            transform: translateY(-2px);
-        }
+  /* ---------- Main ---------- */
+  .main {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 20px; gap: 20px; overflow-y: auto; min-width: 0;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(20, 20, 30, 0.4);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 18px 28px; border-radius: 14px;
+    border: 1px solid rgba(var(--primary-rgb), 0.1);
+  }
+  .header-title {
+    font-size: 26px; font-weight: 700;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .mobile-menu { display: none; }
 
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
+  /* Buttons */
+  .btn {
+    padding: 10px 16px; border-radius: 9px; cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all 0.25s ease;
+    background: rgba(var(--primary-rgb), 0.15);
+    color: var(--primary);
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
+    font-family: inherit;
+  }
+  .btn:hover { background: rgba(var(--primary-rgb), 0.25); border-color: rgba(var(--primary-rgb), 0.6); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-full { width: 100%; }
+  .btn-danger { background: rgba(var(--danger-rgb), 0.15); color: var(--danger); border-color: rgba(var(--danger-rgb), 0.3); }
+  .btn-danger:hover { background: rgba(var(--danger-rgb), 0.25); border-color: rgba(var(--danger-rgb), 0.6); }
+  .btn-icon {
+    width: 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center;
+    border-radius: 9px; font-size: 18px;
+    background: rgba(var(--primary-rgb), 0.2); border: 1px solid rgba(var(--primary-rgb), 0.4);
+    color: var(--primary); cursor: pointer; transition: all 0.25s ease;
+  }
+  .btn-icon:hover { background: rgba(var(--primary-rgb), 0.3); transform: translateY(-1px); }
 
-        .sidebar-header {
-            padding: 24px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
+  /* Views */
+  .view { display: none; flex-direction: column; gap: 20px; }
+  .view.active { display: flex; }
 
-        .sidebar-header h2 {
-            font-size: 20px;
-            background: linear-gradient(to right, #4ade80, #22c55e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+  /* Grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
 
-        .sidebar-header p {
-            font-size: 12px;
-            color: #999;
-            margin-top: 4px;
-        }
+  /* Cards */
+  .card {
+    background: rgba(30, 30, 40, 0.5);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
+    border-radius: 16px; padding: 24px;
+    display: flex; flex-direction: column; gap: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .card:hover {
+    border-color: rgba(var(--primary-rgb), 0.3);
+    box-shadow: 0 8px 32px rgba(var(--primary-rgb), 0.1);
+  }
+  .card-title { font-size: 16px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+  .card-full { grid-column: 1 / -1; }
 
-        .sidebar-nav {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-        }
+  .stat-large {
+    font-size: 44px; font-weight: 700; line-height: 1.1;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-mini { font-size: 28px; font-weight: 700; color: var(--primary); }
 
-        .sidebar-nav button {
-            width: 100%;
-            text-align: left;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            background: transparent;
-            color: #999;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+  /* Inputs */
+  input, textarea, select {
+    width: 100%; padding: 11px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
+    border-radius: 9px; color: var(--text); font-size: 14px;
+    outline: none; transition: all 0.25s ease; font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: rgba(var(--primary-rgb), 0.5);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-faint); }
+  select option { background: #1a1a2e; color: var(--text); }
+  label.field { display: block; font-size: 13px; color: rgba(232,232,232,0.8); margin-bottom: 6px; font-weight: 500; }
+  .form-row { display: flex; flex-direction: column; gap: 10px; }
 
-        .sidebar-nav button:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
+  /* Bar chart */
+  .chart {
+    display: flex; align-items: flex-end; gap: 12px;
+    height: 190px; padding: 12px 4px 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.05) 0%, rgba(59,130,246,0.05) 100%);
+    border: 1px solid rgba(var(--primary-rgb), 0.12);
+    overflow-x: auto;
+  }
+  .chart.empty { align-items: center; justify-content: center; border-style: dashed; color: var(--text-faint); font-size: 13px; }
+  .bar-wrap { flex: 1; min-width: 44px; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .bar {
+    width: 70%; border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, var(--primary) 0%, rgba(var(--primary-rgb),0.4) 100%);
+    transition: height 0.5s ease; min-height: 4px;
+  }
+  .bar-val { font-size: 12px; color: var(--primary); font-weight: 600; }
+  .bar-name { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
 
-        .sidebar-nav button.active {
-            background: rgba(34, 197, 94, 0.2);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #22c55e;
-        }
+  /* List rows */
+  .list-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px; border-radius: 10px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.2s ease;
+  }
+  .list-row:hover { border-color: rgba(var(--primary-rgb), 0.25); }
+  .row-title { color: var(--text); font-weight: 600; font-size: 14px; }
+  .row-sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+  .row-amount { font-weight: 700; font-size: 15px; }
+  .del-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 13px; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; }
+  .del-btn:hover { background: rgba(var(--danger-rgb), 0.12); }
+  .empty-hint { color: var(--text-faint); font-size: 13px; padding: 8px 2px; }
 
-        .sidebar-separator {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 16px;
-            margin-top: auto;
-        }
+  /* Badges */
+  .badge {
+    display: inline-block; padding: 4px 11px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .badge-blue { background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #60a5fa; }
+  .badge-green { background: rgba(var(--primary-rgb),0.2); border: 1px solid rgba(var(--primary-rgb),0.4); color: var(--primary); }
 
-        .sidebar-separator button {
-            width: 100%;
-            text-align: left;
-            padding: 12px 16px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            background: transparent;
-            color: #999;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+  /* Progress */
+  .progress-track { background: rgba(0,0,0,0.35); height: 8px; border-radius: 4px; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, var(--primary), var(--accent)); height: 100%; transition: width 0.4s ease; }
 
-        .sidebar-separator button.active {
-            background: rgba(34, 197, 94, 0.2);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #22c55e;
-        }
+  /* Voice / Quick add */
+  .voice-input {
+    background: rgba(30, 30, 40, 0.5);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
+    border-radius: 16px; padding: 18px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .voice-input input { flex: 1; }
 
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+  /* Settings */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
+  .settings-section {
+    background: rgba(30, 30, 40, 0.5);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
+    border-radius: 16px; padding: 24px;
+  }
+  .settings-section h3 {
+    font-size: 13px; font-weight: 600; color: var(--primary);
+    margin-bottom: 18px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .setting-item { margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .setting-item:last-child { margin-bottom: 0; }
+  .setting-label { font-size: 13px; color: rgba(232, 232, 232, 0.85); font-weight: 500; }
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-option { width: 38px; height: 38px; border-radius: 9px; border: 2px solid transparent; cursor: pointer; transition: transform 0.2s ease; }
+  .color-option:hover { transform: scale(1.12); }
+  .color-option.active { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.3); }
+  .toggle-switch { display: flex; align-items: center; gap: 10px; }
+  .toggle {
+    width: 44px; height: 24px; background: rgba(var(--primary-rgb), 0.2);
+    border: 1px solid rgba(var(--primary-rgb), 0.4); border-radius: 12px;
+    cursor: pointer; position: relative; transition: all 0.3s ease; flex-shrink: 0;
+  }
+  .toggle.active { background: rgba(var(--primary-rgb), 0.5); }
+  .toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 10px; top: 2px; left: 2px; transition: all 0.3s ease; }
+  .toggle.active::after { left: 22px; }
+  .toggle-label { font-size: 13px; color: rgba(232,232,232,0.7); }
+  input[type=range] { -webkit-appearance: none; height: 6px; padding: 0; background: rgba(var(--primary-rgb),0.2); border-radius: 4px; border: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; }
 
-        .header {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 64px;
-        }
+  /* Chat */
+  .chat-box {
+    background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; height: 320px; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .chat-msg { max-width: 75%; padding: 9px 13px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
+  .chat-msg.me { align-self: flex-end; background: rgba(var(--primary-rgb), 0.2); border: 1px solid rgba(var(--primary-rgb),0.4); color: var(--primary); }
+  .chat-msg.atlas { align-self: flex-start; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; }
+  .status-dot { width: 10px; height: 10px; background: var(--primary); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        .header h1 {
-            font-size: 24px;
-            color: white;
-        }
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: rgba(20,25,35,0.95); border: 1px solid rgba(var(--primary-rgb),0.5);
+    color: var(--text); padding: 13px 22px; border-radius: 12px; font-size: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 999; opacity: 0;
+    transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); backdrop-filter: blur(10px);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-        .header-mic {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(var(--primary-rgb), 0.2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(var(--primary-rgb), 0.4); }
 
-        .header-mic:hover {
-            background: rgba(34, 197, 94, 0.1);
-        }
-
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        /* Forms */
-        input, select, textarea {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 8px 12px;
-            color: white;
-            font-family: inherit;
-            margin-bottom: 8px;
-        }
-
-        input::placeholder, textarea::placeholder {
-            color: #666;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: rgba(34, 197, 94, 0.5);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        /* Grid */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 768px) {
-            .grid, .grid-2 {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(34, 197, 94, 0.4);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(34, 197, 94, 0.6);
-        }
-
-        /* Tabs */
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Stats */
-        .stat-card {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 16px;
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #22c55e;
-            margin-top: 8px;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
-        }
-    </style>
+  /* Mobile */
+  @media (max-width: 760px) {
+    .sidebar {
+      position: fixed; top: 0; left: 0; height: 100%; z-index: 50;
+      transform: translateX(-100%); transition: transform 0.3s ease;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .mobile-menu { display: flex; }
+    .header-title { font-size: 20px; }
+  }
+</style>
 </head>
 <body>
-    <div id="root">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Atlas Dashboard</h2>
-                <p>Bilal's Personal Hub</p>
-            </div>
+<div class="container">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">⚡ ATLAS</div>
+    <div class="sidebar-subtitle">Dashboard</div>
+    <nav class="nav-items" id="nav">
+      <div class="nav-item active" data-view="analytics"><span class="nav-emoji">📊</span> Analytics</div>
+      <div class="nav-item" data-view="finanzen"><span class="nav-emoji">💰</span> Finanzen</div>
+      <div class="nav-item" data-view="ueber"><span class="nav-emoji">🧠</span> Über mich</div>
+      <div class="nav-item" data-view="projekte"><span class="nav-emoji">📁</span> Projekte</div>
+      <div class="nav-item" data-view="kunden"><span class="nav-emoji">🎯</span> Kunden</div>
+      <div class="nav-item" data-view="atlas"><span class="nav-emoji">🤖</span> Atlas KI</div>
+      <div class="nav-separator"></div>
+      <div class="nav-item" data-view="einstellungen"><span class="nav-emoji">⚙️</span> Einstellungen</div>
+    </nav>
+  </aside>
 
-            <nav class="sidebar-nav" id="sidebar-nav">
-                <button class="tab-btn active" data-tab="analytics">📊 Analytics</button>
-                <button class="tab-btn" data-tab="finances">💰 Finanzen</button>
-                <button class="tab-btn" data-tab="aboutme">👤 Über mich</button>
-                <button class="tab-btn" data-tab="projects">🚀 Projekte</button>
-                <button class="tab-btn" data-tab="clients">🤝 Kunden</button>
-                <button class="tab-btn" data-tab="atlas">🤖 Atlas KI</button>
-            </nav>
-
-            <div class="sidebar-separator">
-                <button class="tab-btn" data-tab="settings">⚙️ Einstellungen</button>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div class="header">
-                <h1 id="tab-title">📊 Analytics</h1>
-                <div class="header-mic" title="Mikrofon" onclick="toggleMic()">🎤</div>
-            </div>
-
-            <!-- Content -->
-            <div class="content-area">
-                <!-- Analytics Tab -->
-                <div class="tab-content active" id="analytics">
-                    <div class="grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Gesamte Besuche</div>
-                            <div class="stat-value" id="total-visits">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Websites</div>
-                            <div class="stat-value" id="total-websites">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Durchschnitt</div>
-                            <div class="stat-value" id="avg-visits">0</div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card">
-                        <h3 style="margin-bottom: 16px; color: white;">Website hinzufügen</h3>
-                        <input type="text" id="website-name" placeholder="Website Name">
-                        <input type="url" id="website-url" placeholder="URL">
-                        <input type="number" id="website-visits" placeholder="Besuche">
-                        <button class="glass-button" onclick="addWebsite()">Hinzufügen</button>
-                    </div>
-
-                    <div class="glass-card" style="margin-top: 16px;">
-                        <h3 style="margin-bottom: 16px; color: white;">Websites</h3>
-                        <div id="websites-list"></div>
-                    </div>
-                </div>
-
-                <!-- Finances Tab -->
-                <div class="tab-content" id="finances">
-                    <div class="grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Einnahmen (diese Monat)</div>
-                            <div class="stat-value" id="income-month">0€</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Ausgaben (diese Monat)</div>
-                            <div class="stat-value" style="color: #ef4444;" id="expenses-month">0€</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Netto-Gewinn</div>
-                            <div class="stat-value" id="net-profit">0€</div>
-                        </div>
-                    </div>
-
-                    <div class="grid-2">
-                        <div class="glass-card">
-                            <h3 style="margin-bottom: 16px; color: white;">Einnahmen</h3>
-                            <input type="text" id="income-desc" placeholder="Beschreibung">
-                            <input type="number" id="income-amount" placeholder="Betrag (€)">
-                            <button class="glass-button" onclick="addIncome()" style="width: 100%; margin-top: 8px;">Hinzufügen</button>
-                            <div id="income-list" style="margin-top: 16px;"></div>
-                        </div>
-
-                        <div class="glass-card">
-                            <h3 style="margin-bottom: 16px; color: white;">Ausgaben</h3>
-                            <input type="text" id="expense-desc" placeholder="Beschreibung">
-                            <input type="number" id="expense-amount" placeholder="Betrag (€)">
-                            <button class="glass-button" onclick="addExpense()" style="width: 100%; margin-top: 8px;">Hinzufügen</button>
-                            <div id="expense-list" style="margin-top: 16px;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- About Me Tab -->
-                <div class="tab-content" id="aboutme">
-                    <div class="glass-card">
-                        <h2 style="color: white; margin-bottom: 16px;" id="profile-name">Bilal</h2>
-                        <p style="color: #999; margin-bottom: 16px;" id="profile-who">Student + Entrepreneur</p>
-
-                        <div id="profile-display">
-                            <p style="margin-bottom: 16px;">
-                                <strong style="color: #22c55e;">Alter:</strong> <span id="profile-age">14</span> Jahre
-                            </p>
-                            <p style="margin-bottom: 16px;">
-                                <strong style="color: #22c55e;">Geburtstag:</strong> <span id="profile-bday">30.05</span>
-                            </p>
-                            <p style="margin-bottom: 16px;">
-                                <strong style="color: #22c55e;">Ziele:</strong> <span id="profile-goals" style="color: white;"></span>
-                            </p>
-                            <p style="margin-bottom: 16px;">
-                                <strong style="color: #22c55e;">Interessen:</strong> <span id="profile-interests" style="color: white;"></span>
-                            </p>
-                            <button class="glass-button" onclick="editProfile()">Bearbeiten</button>
-                        </div>
-
-                        <div id="profile-edit" style="display: none;">
-                            <input type="text" id="edit-name" placeholder="Name">
-                            <input type="date" id="edit-bday" placeholder="Geburtstag">
-                            <input type="text" id="edit-who" placeholder="Wer bin ich?">
-                            <textarea id="edit-goals" placeholder="Ziele" style="min-height: 60px;"></textarea>
-                            <textarea id="edit-interests" placeholder="Interessen" style="min-height: 60px;"></textarea>
-                            <button class="glass-button" onclick="saveProfile()" style="width: 100%; margin-top: 8px;">Speichern</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Projects Tab -->
-                <div class="tab-content" id="projects">
-                    <div class="grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Anzahl Projekte</div>
-                            <div class="stat-value" id="project-count">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Gesamt Verdienst</div>
-                            <div class="stat-value" id="project-earnings">0€</div>
-                        </div>
-                    </div>
-
-                    <button class="glass-button" onclick="addProjectForm()" style="margin-bottom: 16px; width: 100%;">+ Projekt hinzufügen</button>
-
-                    <div class="grid" id="projects-list"></div>
-                </div>
-
-                <!-- Clients Tab -->
-                <div class="tab-content" id="clients">
-                    <div class="grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Gesamt Kunden</div>
-                            <div class="stat-value" id="client-count">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Aktiv</div>
-                            <div class="stat-value" id="client-active">0</div>
-                        </div>
-                    </div>
-
-                    <button class="glass-button" onclick="addClientForm()" style="margin-bottom: 16px; width: 100%;">+ Kunde hinzufügen</button>
-
-                    <div class="grid" id="clients-list"></div>
-                </div>
-
-                <!-- Atlas KI Tab -->
-                <div class="tab-content" id="atlas">
-                    <div class="glass-card">
-                        <h3 style="color: white; margin-bottom: 16px;">🤖 Atlas Status</h3>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></div>
-                            <span style="color: #22c55e;">✓ Atlas bereit</span>
-                        </div>
-
-                        <div style="margin-top: 24px;">
-                            <h4 style="color: white; margin-bottom: 12px;">Chat mit Atlas</h4>
-                            <div id="atlas-chat" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; height: 300px; overflow-y: auto; padding: 16px; margin-bottom: 12px;">
-                                <p style="color: #999; text-align: center; padding-top: 120px;">Chat-Historie wird hier angezeigt...</p>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="atlas-input" placeholder="Nachricht eingeben..." style="flex: 1;">
-                                <button class="glass-button" onclick="sendAtlasMessage()">📤</button>
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            <p style="color: #999; font-size: 12px;">💡 Tipp: Atlas kann deine Finanzen tracken, Berichte schreiben und dir bei der Automatisierung helfen.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Settings Tab -->
-                <div class="tab-content" id="settings">
-                    <div class="glass-card">
-                        <h3 style="color: white; margin-bottom: 16px;">🎨 Dashboard Design</h3>
-                        <label style="display: block; margin-bottom: 8px; color: #999;">Primärfarbe:</label>
-                        <input type="color" id="primary-color" value="#22c55e" onchange="changePrimaryColor(this.value)" style="width: 60px; height: 40px; margin-bottom: 16px;">
-                    </div>
-
-                    <div class="glass-card" style="margin-top: 16px;">
-                        <h3 style="color: white; margin-bottom: 16px;">💾 Datenverwaltung</h3>
-                        <button class="glass-button" onclick="exportData()" style="width: 100%; margin-bottom: 8px;">📥 Daten exportieren</button>
-                        <button class="glass-button" onclick="importData()" style="width: 100%; margin-bottom: 8px;">📤 Daten importieren</button>
-                        <button class="glass-button" onclick="clearData()" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); border-color: rgba(239, 68, 68, 0.3);">🗑️ Alle Daten löschen</button>
-                    </div>
-
-                    <div class="glass-card" style="margin-top: 16px;">
-                        <h3 style="color: white; margin-bottom: 12px;">ℹ️ Über</h3>
-                        <p style="font-size: 12px; color: #999;">
-                            <strong>Bilal Personal Dashboard v1.0</strong><br>
-                            Ein modernes, offline-fähiges Dashboard für Finanz-Tracking und Projektmanagement.<br>
-                            Alle Daten werden lokal in deinem Browser gespeichert.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Main -->
+  <main class="main">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn-icon mobile-menu" onclick="toggleSidebar()">☰</button>
+        <div class="header-title" id="viewTitle">📊 Analytics</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="importData()">📥 Importieren</button>
+        <button class="btn-icon" onclick="micHint()" title="Mikrofon">🎤</button>
+      </div>
     </div>
 
-    <script>
-        // Data Management
-        const DEFAULT_DATA = {
-            profile: {
-                name: 'Bilal',
-                age: 14,
-                birthday: '2010-05-30',
-                who: 'Student + Entrepreneur',
-                goals: 'Finanziell frei, ohne 08/15 Job',
-                interests: 'Anime, Power-Scaling, Tech, Webseitenbau'
-            },
-            analytics: { websites: [] },
-            finances: { income: [], expenses: [] },
-            projects: [],
-            clients: [],
-            settings: { primaryColor: '#22c55e' }
-        };
+    <!-- ========== ANALYTICS (Übersicht) ========== -->
+    <section class="view active" id="analytics">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">📈 Website Besuche</div>
+          <div class="chart empty" id="visitsChart">Noch keine Daten</div>
+        </div>
+        <div class="card">
+          <div class="card-title">💵 Einnahmen (Monat)</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;">
+            <div class="stat-large" id="ovIncome">0 €</div>
+            <div class="stat-label" id="ovIncomeSub">Diesen Monat</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎭 Wer bin ich</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;">
+            <div style="font-size:17px;font-weight:600;color:#fff;" id="ovName">Bilal</div>
+            <div class="stat-label" id="ovMeta">14 Jahre · Student & Entrepreneur</div>
+            <div class="stat-label" id="ovGoal">Ziel: Finanziell frei sein 🚀</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📁 Aktive Projekte</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;" id="ovProjects">
+            <div class="empty-hint">Noch keine Projekte</div>
+          </div>
+        </div>
+      </div>
 
-        function getData() {
-            const stored = localStorage.getItem('dashboard-data');
-            return stored ? JSON.parse(stored) : DEFAULT_DATA;
-        }
+      <div class="voice-input">
+        <input type="text" id="quickAdd" placeholder="Schnell-Eingabe: z.B. 'Website verkauft 300' → wird als Einnahme gebucht" onkeydown="if(event.key==='Enter')runQuickAdd()">
+        <button class="btn-icon" onclick="runQuickAdd()">🎤</button>
+        <button class="btn" onclick="runQuickAdd()">Atlas übernimmt</button>
+      </div>
 
-        function saveData(data) {
-            localStorage.setItem('dashboard-data', JSON.stringify(data));
-        }
+      <div class="card">
+        <div class="card-title">🌐 Websites verwalten</div>
+        <div class="grid-3">
+          <input type="text" id="wName" placeholder="Website Name">
+          <input type="text" id="wUrl" placeholder="URL">
+          <input type="number" id="wVisits" placeholder="Besuche">
+        </div>
+        <button class="btn btn-full" onclick="addWebsite()">+ Website hinzufügen</button>
+        <div id="websiteList"></div>
+      </div>
+    </section>
 
-        function initData() {
-            if (!localStorage.getItem('dashboard-data')) {
-                saveData(DEFAULT_DATA);
-            }
-        }
+    <!-- ========== FINANZEN ========== -->
+    <section class="view" id="finanzen">
+      <div class="grid-3">
+        <div class="card"><div class="stat-label">Einnahmen (Monat)</div><div class="stat-mini" id="finIncome">0 €</div></div>
+        <div class="card"><div class="stat-label">Ausgaben (Monat)</div><div class="stat-mini" style="color:var(--danger)" id="finExpense">0 €</div></div>
+        <div class="card"><div class="stat-label">Netto-Gewinn</div><div class="stat-mini" id="finNet">0 €</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">➕ Einnahme</div>
+          <input type="text" id="incDesc" placeholder="Beschreibung (z.B. Website verkauft)">
+          <input type="number" id="incAmount" placeholder="Betrag">
+          <button class="btn btn-full" onclick="addIncome()">Einnahme buchen</button>
+          <div id="incomeList" style="margin-top:6px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">➖ Ausgabe</div>
+          <input type="text" id="expDesc" placeholder="Beschreibung (z.B. Domain)">
+          <input type="number" id="expAmount" placeholder="Betrag">
+          <button class="btn btn-full btn-danger" onclick="addExpense()">Ausgabe buchen</button>
+          <div id="expenseList" style="margin-top:6px;"></div>
+        </div>
+      </div>
+    </section>
 
-        // Tab Switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tabName = btn.dataset.tab;
-                switchTab(tabName);
-            });
-        });
+    <!-- ========== ÜBER MICH ========== -->
+    <section class="view" id="ueber">
+      <div class="card" style="max-width:640px;">
+        <div id="profileView">
+          <h2 style="color:#fff;font-size:24px;" id="pName">Bilal</h2>
+          <p style="color:var(--text-dim);margin:4px 0 20px;" id="pWho">Student + Entrepreneur</p>
+          <div class="list-row"><span class="row-sub">Alter</span><span class="row-title" id="pAge">14 Jahre</span></div>
+          <div class="list-row"><span class="row-sub">Geburtstag</span><span class="row-title" id="pBday">30.05.</span></div>
+          <div class="list-row"><span class="row-sub">Nächster Geburtstag in</span><span class="row-title" id="pCountdown">–</span></div>
+          <div style="margin:16px 0 6px;"><span class="row-sub">Ziele</span><p style="color:#fff;margin-top:6px;" id="pGoals"></p></div>
+          <div style="margin:16px 0 20px;"><span class="row-sub">Interessen</span><p style="color:#fff;margin-top:6px;" id="pInterests"></p></div>
+          <button class="btn" onclick="editProfile()">✏️ Bearbeiten</button>
+        </div>
+        <div id="profileEdit" style="display:none;">
+          <div class="form-row">
+            <div><label class="field">Name</label><input type="text" id="eName"></div>
+            <div><label class="field">Geburtstag</label><input type="date" id="eBday"></div>
+            <div><label class="field">Wer bin ich?</label><input type="text" id="eWho"></div>
+            <div><label class="field">Ziele</label><textarea id="eGoals" style="min-height:70px;"></textarea></div>
+            <div><label class="field">Interessen</label><textarea id="eInterests" style="min-height:70px;"></textarea></div>
+            <button class="btn btn-full" onclick="saveProfile()">💾 Speichern</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    <!-- ========== PROJEKTE ========== -->
+    <section class="view" id="projekte">
+      <div class="grid-2">
+        <div class="card"><div class="stat-label">Anzahl Projekte</div><div class="stat-mini" id="projCount">0</div></div>
+        <div class="card"><div class="stat-label">Gesamt-Verdienst</div><div class="stat-mini" id="projEarn">0 €</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">➕ Neues Projekt</div>
+        <div class="grid-3">
+          <input type="text" id="projName" placeholder="Projektname">
+          <select id="projStatus">
+            <option>Planung</option><option>In Arbeit</option><option>Fast fertig</option><option>Abgeschlossen</option>
+          </select>
+          <input type="number" id="projEarnings" placeholder="Verdienst (€)">
+        </div>
+        <button class="btn btn-full" onclick="addProject()">Projekt hinzufügen</button>
+      </div>
+      <div class="grid-auto" id="projectList"></div>
+    </section>
 
-            document.getElementById(tabName).classList.add('active');
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    <!-- ========== KUNDEN ========== -->
+    <section class="view" id="kunden">
+      <div class="grid-3">
+        <div class="card"><div class="stat-label">Gesamt Kunden</div><div class="stat-mini" id="cliCount">0</div></div>
+        <div class="card"><div class="stat-label">Aktiv</div><div class="stat-mini" id="cliActive">0</div></div>
+        <div class="card"><div class="stat-label">In Verhandlung</div><div class="stat-mini" id="cliNego">0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">➕ Neuer Kunde</div>
+        <div class="grid-3">
+          <input type="text" id="cliName" placeholder="Name">
+          <input type="text" id="cliContact" placeholder="Kontakt (E-Mail / Tel)">
+          <select id="cliStatus">
+            <option>Neu</option><option>Verhandlung</option><option>Aktiv</option><option>Abgelehnt</option>
+          </select>
+        </div>
+        <button class="btn btn-full" onclick="addClient()">Kunde hinzufügen</button>
+      </div>
+      <div class="grid-auto" id="clientList"></div>
+    </section>
 
-            const titles = {
-                analytics: '📊 Analytics',
-                finances: '💰 Finanzen',
-                aboutme: '👤 Über mich',
-                projects: '🚀 Projekte',
-                clients: '🤝 Kunden',
-                atlas: '🤖 Atlas KI',
-                settings: '⚙️ Einstellungen'
-            };
+    <!-- ========== ATLAS KI ========== -->
+    <section class="view" id="atlas">
+      <div class="card">
+        <div class="card-title">🤖 Atlas Status <span class="badge badge-blue" style="margin-left:8px;">Beta</span></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="status-dot"></div><span style="color:var(--primary);font-size:14px;" id="atlasStatus">Atlas bereit (Offline-Modus)</span>
+        </div>
+        <div class="chat-box" id="chatBox">
+          <div class="chat-msg atlas">Hi Bilal! 👋 Ich bin Atlas. Schreib mir, was du gemacht hast — z.B. „Ich habe eine Website für 300€ verkauft" und ich buche es für dich.</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <input type="text" id="atlasInput" placeholder="Nachricht an Atlas..." onkeydown="if(event.key==='Enter')sendAtlas()">
+          <button class="btn-icon" onclick="sendAtlas()">📤</button>
+        </div>
+        <p class="stat-label" style="margin-top:4px;">💡 Atlas kann Einnahmen aus deinen Nachrichten erkennen und automatisch in die Finanzen eintragen.</p>
+      </div>
+    </section>
 
-            document.getElementById('tab-title').textContent = titles[tabName];
+    <!-- ========== EINSTELLUNGEN ========== -->
+    <section class="view" id="einstellungen">
+      <div class="settings-grid">
+        <!-- Farben -->
+        <div class="settings-section">
+          <h3>🎨 Dashboard Farben</h3>
+          <div class="setting-item">
+            <div class="setting-label">Primärfarbe</div>
+            <div class="color-picker" id="colorPicker">
+              <div class="color-option" style="background:#22c55e" data-color="#22c55e" title="Grün"></div>
+              <div class="color-option" style="background:#3b82f6" data-color="#3b82f6" title="Blau"></div>
+              <div class="color-option" style="background:#8b5cf6" data-color="#8b5cf6" title="Violett"></div>
+              <div class="color-option" style="background:#06b6d4" data-color="#06b6d4" title="Cyan"></div>
+              <div class="color-option" style="background:#f59e0b" data-color="#f59e0b" title="Orange"></div>
+              <div class="color-option" style="background:#ec4899" data-color="#ec4899" title="Pink"></div>
+            </div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Eigene Farbe</div>
+            <input type="color" id="customColor" value="#22c55e" onchange="setPrimary(this.value)" style="height:44px;padding:4px;">
+          </div>
+        </div>
 
-            if (tabName === 'analytics') loadAnalytics();
-            if (tabName === 'finances') loadFinances();
-            if (tabName === 'aboutme') loadAboutMe();
-            if (tabName === 'projects') loadProjects();
-            if (tabName === 'clients') loadClients();
-        }
+        <!-- Sprache & Region -->
+        <div class="settings-section">
+          <h3>🌐 Sprache & Region</h3>
+          <div class="setting-item">
+            <div class="setting-label">Sprache</div>
+            <select id="setLang" onchange="saveSettingsFromUI()">
+              <option value="de">Deutsch (DE)</option><option value="en">English (EN)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Währung</div>
+            <select id="setCurrency" onchange="saveSettingsFromUI();refreshAll()">
+              <option value="€">Euro (€)</option><option value="$">Dollar ($)</option><option value="£">Pfund (£)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Zeitzone</div>
+            <select id="setTz" onchange="saveSettingsFromUI()">
+              <option>Europe/Berlin (MEZ)</option><option>Europe/London</option><option>Europe/Paris</option>
+            </select>
+          </div>
+        </div>
 
-        // Analytics
-        function loadAnalytics() {
-            const data = getData();
-            const websites = data.analytics.websites;
-            const total = websites.reduce((sum, w) => sum + w.visits, 0);
+        <!-- Atlas Stimme -->
+        <div class="settings-section">
+          <h3>🎤 Atlas Stimme</h3>
+          <div class="setting-item">
+            <div class="setting-label">Stimme</div>
+            <select id="setVoice" onchange="saveSettingsFromUI()">
+              <option value="neutral">Neutral (Standard)</option><option value="male">Männlich</option>
+              <option value="female">Weiblich</option><option value="robot">Roboter</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Lautstärke: <span id="volLabel">75%</span></div>
+            <input type="range" min="0" max="100" value="75" id="setVolume" oninput="volLabel.textContent=this.value+'%'" onchange="saveSettingsFromUI()">
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Sprechgeschwindigkeit</div>
+            <select id="setSpeed" onchange="saveSettingsFromUI()">
+              <option value="slow">Langsam</option><option value="normal">Normal</option><option value="fast">Schnell</option>
+            </select>
+          </div>
+        </div>
 
-            document.getElementById('total-visits').textContent = total;
-            document.getElementById('total-websites').textContent = websites.length;
-            document.getElementById('avg-visits').textContent = websites.length > 0 ? Math.round(total / websites.length) : 0;
+        <!-- Atlas Verhalten -->
+        <div class="settings-section">
+          <h3>🤖 Atlas Verhalten</h3>
+          <div class="setting-item">
+            <div class="setting-label">Automatisches Tracking</div>
+            <div class="toggle-switch"><div class="toggle" id="tgTracking" onclick="toggleSetting('autoTracking', this)"></div><span class="toggle-label">An/Aus</span></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Monatliche Auto-Reports</div>
+            <div class="toggle-switch"><div class="toggle" id="tgReports" onclick="toggleSetting('autoReports', this)"></div><span class="toggle-label">An/Aus</span></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Atlas Modus</div>
+            <select id="setMode" onchange="saveSettingsFromUI()">
+              <option value="normal">Normal (fragt nach)</option><option value="auto">Automatisch</option><option value="safe">Nur mit Bestätigung</option>
+            </select>
+          </div>
+        </div>
 
-            let html = '';
-            websites.forEach((site, idx) => {
-                html += `
-                    <div class="glass-card" style="margin-bottom: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div style="flex: 1;">
-                                <p style="color: white; font-weight: 600;">${site.name}</p>
-                                <p style="font-size: 12px; color: #999;">${site.url}</p>
-                                <p style="color: #22c55e; margin-top: 8px;">${site.visits} Besuche</p>
-                            </div>
-                            <button onclick="deleteWebsite(${idx})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;">Löschen</button>
-                        </div>
-                    </div>
-                `;
-            });
-            document.getElementById('websites-list').innerHTML = html || '<p style="color: #999;">Keine Websites hinzugefügt</p>';
-        }
+        <!-- API -->
+        <div class="settings-section">
+          <h3>🔑 Claude API</h3>
+          <div class="setting-item">
+            <div class="setting-label">Status</div>
+            <div id="apiStatus" style="font-size:13px;font-weight:500;color:var(--danger)">❌ Nicht verbunden</div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">API-Key</div>
+            <input type="password" id="setApiKey" placeholder="sk-..." onchange="saveApiKey()">
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-full" onclick="saveApiKey()">🔗 Speichern & prüfen</button>
+          </div>
+        </div>
 
-        function addWebsite() {
-            const name = document.getElementById('website-name').value;
-            const url = document.getElementById('website-url').value;
-            const visits = parseInt(document.getElementById('website-visits').value) || 0;
+        <!-- Daten & Sicherheit -->
+        <div class="settings-section">
+          <h3>🔒 Daten & Sicherheit</h3>
+          <div class="setting-item">
+            <div class="setting-label">Automatische Backups</div>
+            <div class="toggle-switch"><div class="toggle" id="tgBackup" onclick="toggleSetting('autoBackup', this)"></div><span class="toggle-label">An/Aus</span></div>
+          </div>
+          <div class="setting-item"><button class="btn btn-full" onclick="exportData()">💾 Daten exportieren</button></div>
+          <div class="setting-item"><button class="btn btn-full" onclick="importData()">📂 Daten importieren</button></div>
+          <div class="setting-item"><button class="btn btn-full btn-danger" onclick="clearData()">🗑️ Alle Daten löschen</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
 
-            if (name && url && visits) {
-                const data = getData();
-                data.analytics.websites.push({ name, url, visits, date: new Date().toISOString().split('T')[0] });
-                saveData(data);
+<div class="toast" id="toast"></div>
 
-                document.getElementById('website-name').value = '';
-                document.getElementById('website-url').value = '';
-                document.getElementById('website-visits').value = '';
+<script>
+"use strict";
 
-                loadAnalytics();
-            }
-        }
+// ---------------- Daten ----------------
+const KEY = 'atlas-dashboard-data';
+const DEFAULT_DATA = {
+  profile: { name: 'Bilal', birthday: '2010-05-30', who: 'Student + Entrepreneur',
+    goals: 'Finanziell frei sein, ohne 08/15-Job', interests: 'Anime, Tech, Webseitenbau' },
+  websites: [],
+  income: [],
+  expenses: [],
+  projects: [],
+  clients: [],
+  settings: { primaryColor: '#22c55e', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
+    voice: 'neutral', volume: 75, speed: 'normal',
+    autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal', apiKey: '' }
+};
 
-        function deleteWebsite(idx) {
-            const data = getData();
-            data.analytics.websites.splice(idx, 1);
-            saveData(data);
-            loadAnalytics();
-        }
+let data = load();
 
-        // Finances
-        function loadFinances() {
-            const data = getData();
-            const today = new Date();
-            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return structuredClone(DEFAULT_DATA);
+    const parsed = JSON.parse(raw);
+    // Sanft mit Defaults auffüllen (falls alte Version)
+    return Object.assign(structuredClone(DEFAULT_DATA), parsed,
+      { settings: Object.assign({}, DEFAULT_DATA.settings, parsed.settings || {}) });
+  } catch (e) { return structuredClone(DEFAULT_DATA); }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){} }
 
-            const income = data.finances.income
-                .filter(i => new Date(i.date) >= monthStart)
-                .reduce((sum, i) => sum + i.amount, 0);
+const cur = () => data.settings.currency || '€';
+const money = n => (Math.round(n*100)/100).toLocaleString('de-DE', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + ' ' + cur();
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayStr = () => new Date().toISOString().split('T')[0];
 
-            const expenses = data.finances.expenses
-                .filter(e => new Date(e.date) >= monthStart)
-                .reduce((sum, e) => sum + e.amount, 0);
+// ---------------- Toast ----------------
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
 
-            const profit = income - expenses;
+// ---------------- Navigation ----------------
+const TITLES = { analytics:'📊 Analytics', finanzen:'💰 Finanzen', ueber:'🧠 Über mich',
+  projekte:'📁 Projekte', kunden:'🎯 Kunden', atlas:'🤖 Atlas KI', einstellungen:'⚙️ Einstellungen' };
 
-            document.getElementById('income-month').textContent = income.toFixed(2) + '€';
-            document.getElementById('expenses-month').textContent = expenses.toFixed(2) + '€';
-            document.getElementById('net-profit').textContent = profit.toFixed(2) + '€';
+document.getElementById('nav').addEventListener('click', e => {
+  const item = e.target.closest('.nav-item');
+  if (!item) return;
+  const view = item.dataset.view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === view));
+  document.getElementById('viewTitle').textContent = TITLES[view];
+  document.getElementById('sidebar').classList.remove('open');
+  renderView(view);
+});
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-            let incomeHtml = '';
-            data.finances.income.forEach((item, idx) => {
-                incomeHtml += `
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 4px; margin-bottom: 4px;">
-                        <div>
-                            <p style="color: white; font-size: 12px;">${item.description}</p>
-                            <p style="color: #999; font-size: 10px;">${item.date}</p>
-                        </div>
-                        <span style="color: #22c55e; font-weight: 600;">${item.amount.toFixed(2)}€</span>
-                    </div>
-                `;
-            });
-            document.getElementById('income-list').innerHTML = incomeHtml || '<p style="color: #999; font-size: 12px;">Keine Einnahmen</p>';
+function renderView(v) {
+  if (v === 'analytics') renderAnalytics();
+  if (v === 'finanzen') renderFinances();
+  if (v === 'ueber') renderProfile();
+  if (v === 'projekte') renderProjects();
+  if (v === 'kunden') renderClients();
+  if (v === 'einstellungen') renderSettings();
+}
+function refreshAll() { renderAnalytics(); renderFinances(); renderProjects(); renderClients(); }
 
-            let expenseHtml = '';
-            data.finances.expenses.forEach((item, idx) => {
-                expenseHtml += `
-                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239,68,68,0.1); border-radius: 4px; margin-bottom: 4px;">
-                        <div>
-                            <p style="color: white; font-size: 12px;">${item.description}</p>
-                            <p style="color: #999; font-size: 10px;">${item.date}</p>
-                        </div>
-                        <span style="color: #ef4444; font-weight: 600;">${item.amount.toFixed(2)}€</span>
-                    </div>
-                `;
-            });
-            document.getElementById('expense-list').innerHTML = expenseHtml || '<p style="color: #999; font-size: 12px;">Keine Ausgaben</p>';
-        }
+// ---------------- Analytics ----------------
+function monthTotal(list) {
+  const now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), 1);
+  return list.filter(x => new Date(x.date) >= start).reduce((s,x) => s + x.amount, 0);
+}
+function daysLeftInMonth() {
+  const now = new Date(), end = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  return end.getDate() - now.getDate();
+}
 
-        function addIncome() {
-            const desc = document.getElementById('income-desc').value;
-            const amount = parseFloat(document.getElementById('income-amount').value) || 0;
+function renderAnalytics() {
+  // Chart
+  const chart = document.getElementById('visitsChart');
+  if (!data.websites.length) {
+    chart.className = 'chart empty';
+    chart.innerHTML = 'Noch keine Daten — füge unten eine Website hinzu';
+  } else {
+    chart.className = 'chart';
+    const max = Math.max(...data.websites.map(w => w.visits), 1);
+    chart.innerHTML = data.websites.map(w => `
+      <div class="bar-wrap" title="${esc(w.name)}: ${w.visits}">
+        <div class="bar-val">${w.visits}</div>
+        <div class="bar" style="height:${Math.max(4, (w.visits/max)*140)}px"></div>
+        <div class="bar-name">${esc(w.name)}</div>
+      </div>`).join('');
+  }
+  // Einnahmen Übersicht
+  document.getElementById('ovIncome').textContent = money(monthTotal(data.income));
+  document.getElementById('ovIncomeSub').textContent = 'Noch ' + daysLeftInMonth() + ' Tage diesen Monat';
+  // Profil
+  document.getElementById('ovName').textContent = data.profile.name;
+  document.getElementById('ovMeta').textContent = calcAge() + ' Jahre · ' + data.profile.who;
+  document.getElementById('ovGoal').textContent = 'Ziel: ' + data.profile.goals;
+  // Projekte
+  const ovP = document.getElementById('ovProjects');
+  const active = data.projects.filter(p => p.status !== 'Abgeschlossen');
+  ovP.innerHTML = active.length
+    ? active.slice(0,5).map(p => `<div style="color:#fff;font-size:14px;">✓ ${esc(p.name)} <span class="stat-label" style="text-transform:none;">(${esc(p.status)})</span></div>`).join('')
+    : '<div class="empty-hint">Noch keine aktiven Projekte</div>';
+  // Websites Liste
+  document.getElementById('websiteList').innerHTML = data.websites.length
+    ? data.websites.map((w,i) => `
+      <div class="list-row">
+        <div><div class="row-title">${esc(w.name)}</div><div class="row-sub">${esc(w.url)} · ${w.visits} Besuche</div></div>
+        <button class="del-btn" onclick="delWebsite(${i})">Löschen</button>
+      </div>`).join('')
+    : '<div class="empty-hint">Keine Websites hinzugefügt</div>';
+}
+function addWebsite() {
+  const name = document.getElementById('wName').value.trim();
+  const url = document.getElementById('wUrl').value.trim();
+  const visits = parseInt(document.getElementById('wVisits').value) || 0;
+  if (!name) return toast('Bitte einen Namen eingeben');
+  data.websites.push({ name, url, visits, date: todayStr() });
+  save();
+  document.getElementById('wName').value = ''; document.getElementById('wUrl').value = ''; document.getElementById('wVisits').value = '';
+  renderAnalytics(); toast('Website hinzugefügt ✔');
+}
+function delWebsite(i) { data.websites.splice(i,1); save(); renderAnalytics(); }
 
-            if (desc && amount > 0) {
-                const data = getData();
-                data.finances.income.push({ description: desc, amount, date: new Date().toISOString().split('T')[0] });
-                saveData(data);
+// Quick add (Analytics + Atlas)
+function parseAmount(text) { const m = String(text).replace(',', '.').match(/(\d+(\.\d+)?)/); return m ? parseFloat(m[1]) : null; }
+function runQuickAdd() {
+  const el = document.getElementById('quickAdd');
+  const text = el.value.trim();
+  if (!text) return;
+  const amount = parseAmount(text);
+  if (amount) {
+    data.income.push({ description: text, amount, date: todayStr() });
+    save(); renderAnalytics();
+    toast('Als Einnahme gebucht: ' + money(amount) + ' ✔');
+  } else {
+    toast('Keine Zahl gefunden — bitte Betrag angeben');
+  }
+  el.value = '';
+}
 
-                document.getElementById('income-desc').value = '';
-                document.getElementById('income-amount').value = '';
+// ---------------- Finanzen ----------------
+function renderFinances() {
+  const inc = monthTotal(data.income), exp = monthTotal(data.expenses);
+  document.getElementById('finIncome').textContent = money(inc);
+  document.getElementById('finExpense').textContent = money(exp);
+  const net = document.getElementById('finNet');
+  net.textContent = money(inc - exp);
+  net.style.color = (inc - exp) >= 0 ? 'var(--primary)' : 'var(--danger)';
 
-                loadFinances();
-            }
-        }
+  document.getElementById('incomeList').innerHTML = data.income.length
+    ? data.income.slice().reverse().map((it) => {
+        const i = data.income.indexOf(it);
+        return `<div class="list-row"><div><div class="row-title">${esc(it.description)}</div><div class="row-sub">${it.date}</div></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span class="row-amount" style="color:var(--primary)">${money(it.amount)}</span><button class="del-btn" onclick="delFin('income',${i})">✕</button></div></div>`;
+      }).join('')
+    : '<div class="empty-hint">Keine Einnahmen</div>';
 
-        function addExpense() {
-            const desc = document.getElementById('expense-desc').value;
-            const amount = parseFloat(document.getElementById('expense-amount').value) || 0;
+  document.getElementById('expenseList').innerHTML = data.expenses.length
+    ? data.expenses.slice().reverse().map((it) => {
+        const i = data.expenses.indexOf(it);
+        return `<div class="list-row"><div><div class="row-title">${esc(it.description)}</div><div class="row-sub">${it.date}</div></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span class="row-amount" style="color:var(--danger)">${money(it.amount)}</span><button class="del-btn" onclick="delFin('expenses',${i})">✕</button></div></div>`;
+      }).join('')
+    : '<div class="empty-hint">Keine Ausgaben</div>';
+}
+function addIncome() {
+  const d = document.getElementById('incDesc').value.trim();
+  const a = parseFloat(document.getElementById('incAmount').value);
+  if (!d || !(a > 0)) return toast('Beschreibung und Betrag eingeben');
+  data.income.push({ description: d, amount: a, date: todayStr() });
+  save(); document.getElementById('incDesc').value=''; document.getElementById('incAmount').value='';
+  renderFinances(); toast('Einnahme gebucht ✔');
+}
+function addExpense() {
+  const d = document.getElementById('expDesc').value.trim();
+  const a = parseFloat(document.getElementById('expAmount').value);
+  if (!d || !(a > 0)) return toast('Beschreibung und Betrag eingeben');
+  data.expenses.push({ description: d, amount: a, date: todayStr() });
+  save(); document.getElementById('expDesc').value=''; document.getElementById('expAmount').value='';
+  renderFinances(); toast('Ausgabe gebucht ✔');
+}
+function delFin(type, i) { data[type].splice(i,1); save(); renderFinances(); }
 
-            if (desc && amount > 0) {
-                const data = getData();
-                data.finances.expenses.push({ description: desc, amount, date: new Date().toISOString().split('T')[0] });
-                saveData(data);
+// ---------------- Profil ----------------
+function calcAge() {
+  const b = new Date(data.profile.birthday); if (isNaN(b)) return '–';
+  const now = new Date(); let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+function nextBirthday() {
+  const b = new Date(data.profile.birthday); if (isNaN(b)) return '–';
+  const now = new Date(); let next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+  if (next < now) next = new Date(now.getFullYear()+1, b.getMonth(), b.getDate());
+  const days = Math.ceil((next - now) / 86400000);
+  return days === 0 ? 'Heute! 🎉' : days + ' Tagen';
+}
+function renderProfile() {
+  const p = data.profile;
+  document.getElementById('pName').textContent = p.name;
+  document.getElementById('pWho').textContent = p.who;
+  document.getElementById('pAge').textContent = calcAge() + ' Jahre';
+  const b = new Date(p.birthday);
+  document.getElementById('pBday').textContent = isNaN(b) ? '–' : b.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
+  document.getElementById('pCountdown').textContent = nextBirthday();
+  document.getElementById('pGoals').textContent = p.goals;
+  document.getElementById('pInterests').textContent = p.interests;
+  document.getElementById('profileView').style.display = 'block';
+  document.getElementById('profileEdit').style.display = 'none';
+}
+function editProfile() {
+  const p = data.profile;
+  document.getElementById('eName').value = p.name;
+  document.getElementById('eBday').value = p.birthday;
+  document.getElementById('eWho').value = p.who;
+  document.getElementById('eGoals').value = p.goals;
+  document.getElementById('eInterests').value = p.interests;
+  document.getElementById('profileView').style.display = 'none';
+  document.getElementById('profileEdit').style.display = 'block';
+}
+function saveProfile() {
+  data.profile = {
+    name: document.getElementById('eName').value.trim() || 'Bilal',
+    birthday: document.getElementById('eBday').value || data.profile.birthday,
+    who: document.getElementById('eWho').value.trim(),
+    goals: document.getElementById('eGoals').value.trim(),
+    interests: document.getElementById('eInterests').value.trim()
+  };
+  save(); renderProfile(); renderAnalytics(); toast('Profil gespeichert ✔');
+}
 
-                document.getElementById('expense-desc').value = '';
-                document.getElementById('expense-amount').value = '';
+// ---------------- Projekte ----------------
+const STATUS_COLORS = { 'Planung':'badge-blue', 'In Arbeit':'badge-green', 'Fast fertig':'badge-green', 'Abgeschlossen':'badge-blue' };
+const STATUS_PROGRESS = { 'Planung':15, 'In Arbeit':50, 'Fast fertig':85, 'Abgeschlossen':100 };
+function renderProjects() {
+  document.getElementById('projCount').textContent = data.projects.length;
+  document.getElementById('projEarn').textContent = money(data.projects.reduce((s,p)=>s+(p.earnings||0),0));
+  document.getElementById('projectList').innerHTML = data.projects.length
+    ? data.projects.map((p,i) => `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <h4 style="color:#fff;font-size:16px;">${esc(p.name)}</h4>
+          <button class="del-btn" onclick="delProject(${i})">✕</button>
+        </div>
+        <span class="badge ${STATUS_COLORS[p.status]||'badge-blue'}">${esc(p.status)}</span>
+        <div class="progress-track"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
+        <div class="stat-label" style="text-transform:none;">Fortschritt: ${p.progress||0}%</div>
+        <div style="color:var(--primary);font-weight:700;">${money(p.earnings||0)} Verdienst</div>
+      </div>`).join('')
+    : '<div class="empty-hint">Noch keine Projekte</div>';
+}
+function addProject() {
+  const name = document.getElementById('projName').value.trim();
+  if (!name) return toast('Projektname eingeben');
+  const status = document.getElementById('projStatus').value;
+  const earnings = parseFloat(document.getElementById('projEarnings').value) || 0;
+  data.projects.push({ name, status, progress: STATUS_PROGRESS[status]||0, earnings });
+  save(); document.getElementById('projName').value=''; document.getElementById('projEarnings').value='';
+  renderProjects(); renderAnalytics(); toast('Projekt hinzugefügt ✔');
+}
+function delProject(i) { data.projects.splice(i,1); save(); renderProjects(); renderAnalytics(); }
 
-                loadFinances();
-            }
-        }
+// ---------------- Kunden ----------------
+const CLIENT_COLORS = { 'Neu':'badge-blue', 'Verhandlung':'badge-blue', 'Aktiv':'badge-green', 'Abgelehnt':'badge-blue' };
+function renderClients() {
+  document.getElementById('cliCount').textContent = data.clients.length;
+  document.getElementById('cliActive').textContent = data.clients.filter(c=>c.status==='Aktiv').length;
+  document.getElementById('cliNego').textContent = data.clients.filter(c=>c.status==='Verhandlung').length;
+  document.getElementById('clientList').innerHTML = data.clients.length
+    ? data.clients.map((c,i) => `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <h4 style="color:#fff;font-size:16px;">${esc(c.name)}</h4>
+          <button class="del-btn" onclick="delClient(${i})">✕</button>
+        </div>
+        <div class="row-sub">${esc(c.contact)||'Kein Kontakt'}</div>
+        <select onchange="setClientStatus(${i}, this.value)">
+          ${['Neu','Verhandlung','Aktiv','Abgelehnt'].map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>`).join('')
+    : '<div class="empty-hint">Noch keine Kunden</div>';
+}
+function addClient() {
+  const name = document.getElementById('cliName').value.trim();
+  if (!name) return toast('Kundenname eingeben');
+  data.clients.push({ name, contact: document.getElementById('cliContact').value.trim(), status: document.getElementById('cliStatus').value });
+  save(); document.getElementById('cliName').value=''; document.getElementById('cliContact').value='';
+  renderClients(); toast('Kunde hinzugefügt ✔');
+}
+function setClientStatus(i, s) { data.clients[i].status = s; save(); renderClients(); }
+function delClient(i) { data.clients.splice(i,1); save(); renderClients(); }
 
-        // About Me
-        function loadAboutMe() {
-            const data = getData();
-            const profile = data.profile;
+// ---------------- Atlas Chat ----------------
+function sendAtlas() {
+  const input = document.getElementById('atlasInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const box = document.getElementById('chatBox');
+  box.insertAdjacentHTML('beforeend', `<div class="chat-msg me">${esc(msg)}</div>`);
+  input.value = '';
+  // Einfache Offline-Logik: Betrag erkennen
+  let reply;
+  const amount = parseAmount(msg);
+  if (amount && /(verkauf|einnahme|verdient|bekommen|€|euro)/i.test(msg)) {
+    data.income.push({ description: msg, amount, date: todayStr() });
+    save(); renderAnalytics(); renderFinances();
+    reply = `Erledigt ✅ Ich habe ${money(amount)} als Einnahme gebucht. Weiter so, Bilal! 🚀`;
+  } else if (/hallo|hi|hey|moin/i.test(msg)) {
+    reply = 'Hey! 👋 Erzähl mir, was du heute geschafft hast.';
+  } else {
+    reply = 'Notiert! 📝 Tipp: Wenn du einen Betrag nennst (z.B. „150€ verdient"), buche ich ihn automatisch in deine Finanzen.';
+  }
+  setTimeout(() => {
+    box.insertAdjacentHTML('beforeend', `<div class="chat-msg atlas">${esc(reply)}</div>`);
+    box.scrollTop = box.scrollHeight;
+  }, 350);
+  box.scrollTop = box.scrollHeight;
+}
 
-            document.getElementById('profile-name').textContent = profile.name;
-            document.getElementById('profile-who').textContent = profile.who;
-            document.getElementById('profile-age').textContent = profile.age;
-            document.getElementById('profile-goals').textContent = profile.goals;
-            document.getElementById('profile-interests').textContent = profile.interests;
+// ---------------- Einstellungen ----------------
+function hexToRgb(hex) {
+  const m = hex.replace('#','').match(/.{2}/g);
+  return m ? m.map(x => parseInt(x,16)).join(', ') : '34, 197, 94';
+}
+function setPrimary(hex) {
+  document.documentElement.style.setProperty('--primary', hex);
+  document.documentElement.style.setProperty('--primary-rgb', hexToRgb(hex));
+  data.settings.primaryColor = hex; save();
+  document.getElementById('customColor').value = hex;
+  document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('active', o.dataset.color === hex));
+}
+document.getElementById('colorPicker').addEventListener('click', e => {
+  const o = e.target.closest('.color-option'); if (o) setPrimary(o.dataset.color);
+});
+function toggleSetting(key, el) { el.classList.toggle('active'); data.settings[key] = el.classList.contains('active'); save(); }
+function saveSettingsFromUI() {
+  const s = data.settings;
+  s.language = document.getElementById('setLang').value;
+  s.currency = document.getElementById('setCurrency').value;
+  s.timezone = document.getElementById('setTz').value;
+  s.voice = document.getElementById('setVoice').value;
+  s.volume = parseInt(document.getElementById('setVolume').value);
+  s.speed = document.getElementById('setSpeed').value;
+  s.mode = document.getElementById('setMode').value;
+  save();
+}
+function saveApiKey() {
+  const v = document.getElementById('setApiKey').value.trim();
+  data.settings.apiKey = v; save();
+  const st = document.getElementById('apiStatus');
+  if (v.startsWith('sk-')) { st.textContent = '✅ Key gespeichert (lokal)'; st.style.color = 'var(--primary)'; document.getElementById('atlasStatus').textContent = 'Atlas bereit'; toast('API-Key gespeichert ✔'); }
+  else if (v === '') { st.textContent = '❌ Nicht verbunden'; st.style.color = 'var(--danger)'; }
+  else { st.textContent = '⚠️ Ungültiges Format (sk-...)'; st.style.color = '#f59e0b'; }
+}
+function renderSettings() {
+  const s = data.settings;
+  document.getElementById('setLang').value = s.language;
+  document.getElementById('setCurrency').value = s.currency;
+  document.getElementById('setTz').value = s.timezone;
+  document.getElementById('setVoice').value = s.voice;
+  document.getElementById('setVolume').value = s.volume;
+  document.getElementById('volLabel').textContent = s.volume + '%';
+  document.getElementById('setSpeed').value = s.speed;
+  document.getElementById('setMode').value = s.mode;
+  document.getElementById('setApiKey').value = s.apiKey;
+  document.getElementById('tgTracking').classList.toggle('active', s.autoTracking);
+  document.getElementById('tgReports').classList.toggle('active', s.autoReports);
+  document.getElementById('tgBackup').classList.toggle('active', s.autoBackup);
+  document.getElementById('customColor').value = s.primaryColor;
+  document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('active', o.dataset.color === s.primaryColor));
+  const st = document.getElementById('apiStatus');
+  if ((s.apiKey || '').startsWith('sk-')) { st.textContent = '✅ Key gespeichert (lokal)'; st.style.color = 'var(--primary)'; }
+  else { st.textContent = '❌ Nicht verbunden'; st.style.color = 'var(--danger)'; }
+}
 
-            const bday = new Date(profile.birthday);
-            document.getElementById('profile-bday').textContent = bday.toLocaleDateString('de-DE', { month: '2-digit', day: '2-digit' });
-        }
+// ---------------- Daten Export/Import ----------------
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'atlas-dashboard-' + todayStr() + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Daten exportiert ✔');
+}
+function importData() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const imported = JSON.parse(r.result);
+        data = Object.assign(structuredClone(DEFAULT_DATA), imported,
+          { settings: Object.assign({}, DEFAULT_DATA.settings, imported.settings || {}) });
+        save(); applyTheme(); refreshAll(); renderProfile(); renderSettings();
+        toast('Daten importiert ✔');
+      } catch (err) { toast('Fehler beim Import'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function clearData() {
+  if (!confirm('⚠️ Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden!')) return;
+  localStorage.removeItem(KEY);
+  data = structuredClone(DEFAULT_DATA);
+  applyTheme(); refreshAll(); renderProfile(); renderSettings();
+  toast('Alle Daten gelöscht');
+}
 
-        function editProfile() {
-            const data = getData();
-            const profile = data.profile;
+function micHint() { toast('🎤 Sprache: nutze die Schnell-Eingabe oben oder schreib Atlas im Atlas-Tab'); }
 
-            document.getElementById('edit-name').value = profile.name;
-            document.getElementById('edit-bday').value = profile.birthday;
-            document.getElementById('edit-who').value = profile.who;
-            document.getElementById('edit-goals').value = profile.goals;
-            document.getElementById('edit-interests').value = profile.interests;
-
-            document.getElementById('profile-display').style.display = 'none';
-            document.getElementById('profile-edit').style.display = 'block';
-        }
-
-        function saveProfile() {
-            const data = getData();
-            data.profile = {
-                name: document.getElementById('edit-name').value,
-                age: 14,
-                birthday: document.getElementById('edit-bday').value,
-                who: document.getElementById('edit-who').value,
-                goals: document.getElementById('edit-goals').value,
-                interests: document.getElementById('edit-interests').value
-            };
-            saveData(data);
-
-            document.getElementById('profile-display').style.display = 'block';
-            document.getElementById('profile-edit').style.display = 'none';
-
-            loadAboutMe();
-        }
-
-        // Projects
-        function loadProjects() {
-            const data = getData();
-            const projects = data.projects;
-
-            document.getElementById('project-count').textContent = projects.length;
-            document.getElementById('project-earnings').textContent = projects.reduce((sum, p) => sum + (p.earnings || 0), 0) + '€';
-
-            let html = '';
-            projects.forEach((proj, idx) => {
-                html += `
-                    <div class="glass-card">
-                        <h4 style="color: white; margin-bottom: 12px;">${proj.name}</h4>
-                        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">${proj.status}</p>
-                        <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-bottom: 8px; overflow: hidden;">
-                            <div style="background: #22c55e; height: 100%; width: ${proj.progress || 0}%;"></div>
-                        </div>
-                        <p style="font-size: 12px; color: #999; margin-bottom: 12px;">Progress: ${proj.progress || 0}%</p>
-                        <p style="color: #22c55e; font-weight: 600;">${proj.earnings || 0}€ Verdienst</p>
-                    </div>
-                `;
-            });
-            document.getElementById('projects-list').innerHTML = html || '<p style="color: #999;">Keine Projekte</p>';
-        }
-
-        function addProjectForm() {
-            const name = prompt('Projektname:');
-            if (name) {
-                const data = getData();
-                data.projects.push({ name, status: 'Planning', progress: 0, earnings: 0 });
-                saveData(data);
-                loadProjects();
-            }
-        }
-
-        // Clients
-        function loadClients() {
-            const data = getData();
-            const clients = data.clients;
-
-            document.getElementById('client-count').textContent = clients.length;
-            document.getElementById('client-active').textContent = clients.filter(c => c.status === 'Aktiv').length;
-
-            let html = '';
-            clients.forEach((client, idx) => {
-                html += `
-                    <div class="glass-card">
-                        <h4 style="color: white; margin-bottom: 8px;">${client.name}</h4>
-                        <p style="font-size: 12px; color: #999; margin-bottom: 12px;">${client.type}</p>
-                        <p style="font-size: 12px; color: #999; margin-bottom: 8px;">${client.contact}</p>
-                        <p style="color: #22c55e; font-size: 12px; font-weight: 600;">${client.status}</p>
-                    </div>
-                `;
-            });
-            document.getElementById('clients-list').innerHTML = html || '<p style="color: #999;">Keine Kunden</p>';
-        }
-
-        function addClientForm() {
-            const name = prompt('Kundenname:');
-            if (name) {
-                const data = getData();
-                data.clients.push({ name, type: 'Business', contact: '', status: 'Neu' });
-                saveData(data);
-                loadClients();
-            }
-        }
-
-        // Atlas
-        function sendAtlasMessage() {
-            const input = document.getElementById('atlas-input');
-            const msg = input.value.trim();
-
-            if (msg) {
-                const chat = document.getElementById('atlas-chat');
-                const msgEl = document.createElement('div');
-                msgEl.style.marginBottom = '12px';
-                msgEl.style.display = 'flex';
-                msgEl.style.justifyContent = 'flex-end';
-
-                msgEl.innerHTML = `
-                    <div style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 8px; padding: 8px 12px; max-width: 70%; color: #22c55e; font-size: 12px;">
-                        ${msg}
-                    </div>
-                `;
-                chat.appendChild(msgEl);
-
-                input.value = '';
-                chat.scrollTop = chat.scrollHeight;
-            }
-        }
-
-        // Settings
-        function changePrimaryColor(color) {
-            document.documentElement.style.setProperty('--color-primary', color);
-            const data = getData();
-            data.settings.primaryColor = color;
-            saveData(data);
-        }
-
-        function exportData() {
-            const data = getData();
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `bilal-dashboard-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-        }
-
-        function importData() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'application/json';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const data = JSON.parse(event.target.result);
-                        saveData(data);
-                        alert('Daten importiert! Seite wird neu geladen...');
-                        location.reload();
-                    } catch (err) {
-                        alert('Fehler beim Importieren: ' + err.message);
-                    }
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        function clearData() {
-            if (confirm('⚠️ Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden!')) {
-                localStorage.removeItem('dashboard-data');
-                alert('Daten gelöscht!');
-                location.reload();
-            }
-        }
-
-        // Mic
-        function toggleMic() {
-            alert('🎤 Spracheingabe ist in dieser Version nicht aktiviert.\n\nFunktioniert nur mit Web Speech API im Browser.');
-        }
-
-        // Load primary color
-        function loadSettings() {
-            const data = getData();
-            if (data.settings.primaryColor) {
-                document.documentElement.style.setProperty('--color-primary', data.settings.primaryColor);
-                document.getElementById('primary-color').value = data.settings.primaryColor;
-            }
-        }
-
-        // Init
-        initData();
-        loadSettings();
-        loadAnalytics();
-    </script>
+// ---------------- Init ----------------
+function applyTheme() {
+  const c = data.settings.primaryColor || '#22c55e';
+  document.documentElement.style.setProperty('--primary', c);
+  document.documentElement.style.setProperty('--primary-rgb', hexToRgb(c));
+}
+applyTheme();
+renderAnalytics();
+</script>
 </body>
 </html>
