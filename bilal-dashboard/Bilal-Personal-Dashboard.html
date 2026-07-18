@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big Brain — Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -968,202 +967,224 @@ function saveProfile() {
   save(); renderProfile(); renderAnalytics(); if (brainCanvas) buildBrain(); toast('Profil gespeichert ✔');
 }
 
-// ---------------- Big Brain Netzwerk 3D (Three.js WebGL) ----------------
+// ---------------- Big Brain Netzwerk 3D-Optik (Canvas Isometric) ----------------
 let brainNodes = [], brainLinks = [];
-let brainAnim = null, brainCanvas = null, brainTime = 0;
-let scene = null, camera = null, renderer = null, controls = null;
-let stars = [], rings = [], pyramids = [], nebulaClouds = [], glowSpheres = [];
+let brainAnim = null, brainCanvas = null, brainCtx = null;
+let brainTime = 0, brainW = 0, brainH = 0;
+let stars = [], rings = [], pyramids = [], nebulaClouds = [];
 function brainColor() { return data.settings.brainColor || '#5b8cff'; }
-function hexToRgb(hex) { const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255; return [r,g,b]; }
+function hexToRgbArray(hex) {
+  const h = hex.replace('#','');
+  const r = parseInt(h.slice(0,2),16) || 91;
+  const g = parseInt(h.slice(2,4),16) || 140;
+  const b = parseInt(h.slice(4,6),16) || 255;
+  return [r/255, g/255, b/255];
+}
 
-// 3D Galaxie mit Stars, Rings, Pyramiden und Nebulae
-function build3DGalaxy(){
-  // Clear existing objects
-  stars = []; rings = []; pyramids = []; nebulaClouds = []; glowSpheres = [];
+// Isometric 3D-Effekt Galaxie mit Stars, Pyramiden, Ringen und Nebulae
+function buildGalaxy(){
+  stars = []; rings = []; pyramids = []; nebulaClouds = [];
 
   let seed = 20260718;
   const R = () => { seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
 
-  const color = brainColor();
-  const rgb = hexToRgb(color);
-  const col = new THREE.Color(rgb[0], rgb[1], rgb[2]);
-
-  // Nebula clouds (soft particles)
-  for(let i=0;i<15;i++){
-    const a = R()*Math.PI*2, d = 100+R()*600;
-    const x = Math.cos(a)*d, y = (R()-0.5)*400, z = Math.sin(a)*d;
-    const size = 80+R()*200;
-    const geom = new THREE.BufferGeometry();
-    const positions = [];
-    for(let p=0;p<200;p++){
-      positions.push((R()-0.5)*size, (R()-0.5)*size, (R()-0.5)*size);
-    }
-    geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
-    const mat = new THREE.PointsMaterial({ color: col, size: 2+R()*3, transparent: true, opacity: 0.08+R()*0.12, sizeAttenuation: true });
-    const cloud = new THREE.Points(geom, mat);
-    cloud.position.set(x, y, z);
-    scene.add(cloud);
-    nebulaClouds.push({ obj: cloud, rotX: R()*6.283, rotY: R()*6.283, rotZ: R()*6.283 });
-  }
-
-  // Rings (rotating)
-  const ringRadii = [250, 420, 650];
-  const ringMats = [0.15, 0.12, 0.1];
-  ringRadii.forEach((r, idx) => {
-    const geom = new THREE.BufferGeometry();
-    const pts = [];
-    for(let i=0;i<200;i++){
-      const angle = (i/200)*Math.PI*2;
-      pts.push(Math.cos(angle)*r, (R()-0.5)*20, Math.sin(angle)*r);
-    }
-    geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
-    const mat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: ringMats[idx] });
-    const line = new THREE.Line(geom, mat);
-    line.rotation.x = -0.3+R()*0.1;
-    line.rotation.z = -0.3+R()*0.1;
-    scene.add(line);
-    rings.push({ obj: line, speed: 0.001+R()*0.003 });
-  });
-
-  // Stars (various sizes - different element types)
-  const starCount = 200+Math.floor(R()*100);
-  for(let i=0;i<starCount;i++){
-    const a = R()*Math.PI*2, b = Math.acos(R()*2-1);
-    const r = 150+Math.pow(R(),0.6)*800;
-    const x = Math.sin(b)*Math.cos(a)*r, y = Math.sin(b)*Math.sin(a)*r, z = Math.cos(b)*r;
-    const size = 0.5+R()*2;
-    const opacity = 0.3+R()*0.7;
-
-    const geom = new THREE.IcosahedronGeometry(size*0.5, 2);
-    const mat = new THREE.MeshPhongMaterial({ color: col, emissive: new THREE.Color(rgb[0]*0.5, rgb[1]*0.5, rgb[2]*0.5), wireframe: false });
-    const star = new THREE.Mesh(geom, mat);
-    star.position.set(x, y, z);
-    star.scale.set(1+R()*0.5, 1+R()*0.5, 1+R()*0.5);
-    scene.add(star);
-    stars.push({ obj: star, rotSpeedX: (R()-0.5)*0.02, rotSpeedY: (R()-0.5)*0.02, twinklePhase: R()*Math.PI*2 });
-  }
-
-  // Pyramids/Crystals (geometric accent elements)
-  const pyramidCount = 40+Math.floor(R()*30);
-  for(let i=0;i<pyramidCount;i++){
-    const a = R()*Math.PI*2, d = 200+R()*700;
-    const x = Math.cos(a)*d, y = (R()-0.5)*300, z = Math.sin(a)*d;
-
-    const geom = new THREE.TetrahedronGeometry(8+R()*12, 0);
-    const mat = new THREE.MeshPhongMaterial({
-      color: col,
-      emissive: new THREE.Color(rgb[0]*0.3, rgb[1]*0.3, rgb[2]*0.3),
-      transparent: true,
-      opacity: 0.6+R()*0.3,
-      wireframe: R()<0.3
+  // Nebula clouds (soft, layered particle clouds)
+  for(let i=0;i<18;i++){
+    const a = R()*6.283, d = 80+R()*700;
+    const z = (R()-0.5)*400;
+    nebulaClouds.push({
+      x: Math.cos(a)*d, y: Math.sin(a)*d, z: z,
+      size: 60+R()*180, opacity: 0.06+R()*0.1,
+      rotSpeed: (R()-0.5)*0.002, phase: R()*6.283
     });
-    const pyr = new THREE.Mesh(geom, mat);
-    pyr.position.set(x, y, z);
-    pyr.rotation.set(R()*Math.PI, R()*Math.PI, R()*Math.PI);
-    scene.add(pyr);
-    pyramids.push({ obj: pyr, rotX: R()*0.01, rotY: R()*0.01, rotZ: R()*0.01 });
   }
 
-  // Central glow sphere
-  const cGeom = new THREE.SphereGeometry(30, 32, 32);
-  const cMat = new THREE.MeshPhongMaterial({ color: col, emissive: col, wireframe: false });
-  const coreSphere = new THREE.Mesh(cGeom, cMat);
-  scene.add(coreSphere);
-  glowSpheres.push({ obj: coreSphere, scale: 1, targetScale: 1.2, phase: 0 });
+  // Rings (tilted, 3D-looking ellipses with depth)
+  rings = [
+    { rx: 320, ry: 90, z: -40, rot: -0.25, opacity: 0.2, speed: 0.0008 },
+    { rx: 520, ry: 160, z: 0, rot: -0.15, opacity: 0.15, speed: 0.0012 },
+    { rx: 760, ry: 280, z: 50, rot: -0.35, opacity: 0.1, speed: 0.0005 }
+  ];
+
+  // Stars (icosahedra-like with rotation)
+  const starCount = 280+Math.floor(R()*120);
+  for(let i=0;i<starCount;i++){
+    const a = R()*6.283, phi = Math.acos(R()*2-1), r = 140+Math.pow(R(),0.6)*850;
+    const x = Math.sin(phi)*Math.cos(a)*r, y = Math.sin(phi)*Math.sin(a)*r, z = Math.cos(phi)*r;
+    stars.push({
+      x: x, y: y, z: z,
+      size: 0.4+R()*1.8, opacity: 0.25+R()*0.75,
+      rotX: (R()-0.5)*0.03, rotY: (R()-0.5)*0.03, rotZ: (R()-0.5)*0.02,
+      twinkle: R()*6.283, points: 5+Math.floor(R()*3)
+    });
+  }
+
+  // Pyramids/Crystals (tetrahedron-like geometric elements)
+  const pyramidCount = 55+Math.floor(R()*45);
+  for(let i=0;i<pyramidCount;i++){
+    const a = R()*6.283, d = 150+R()*750;
+    const z = (R()-0.5)*350;
+    pyramids.push({
+      x: Math.cos(a)*d, y: Math.sin(a)*d, z: z,
+      size: 6+R()*14, opacity: 0.5+R()*0.4,
+      rotX: R()*6.283, rotY: R()*6.283, rotZ: R()*6.283,
+      rotSpeedX: R()*0.012, rotSpeedY: R()*0.012, rotSpeedZ: R()*0.008,
+      wireframe: R()<0.25
+    });
+  }
 }
 
-// Stub functions for compatibility (now using Three.js)
-function buildBrain() { /* 3D scene already built */ }
+// Stub functions for compatibility
+function buildBrain() { /* Already initialized */ }
 function brainStep() { /* Animation in render loop */ }
 
-// 3D Animation loop
-function animate3D(){
+// Canvas-based Isometric 3D render loop
+function brainDraw(){
+  const ctx = brainCtx; if(!ctx) return;
   brainTime += 0.016;
 
-  // Global rotation around scene
-  const globalRot = brainTime * 0.0008;
-  scene.rotation.y = globalRot;
+  ctx.clearRect(0, 0, brainW, brainH);
+  const color = brainColor();
+  const rgb = hexToRgbArray(color);
+  const globalRot = brainTime * 0.0006;
+  const csr = Math.cos(globalRot), snr = Math.sin(globalRot);
 
-  // Update stars (twinkle + rotate)
-  stars.forEach(s => {
-    s.obj.rotation.x += s.rotSpeedX;
-    s.obj.rotation.y += s.rotSpeedY;
-    const tw = Math.sin(brainTime * 1.2 + s.twinklePhase);
-    s.obj.scale.set(1+tw*0.3, 1+tw*0.3, 1+tw*0.3);
-  });
+  // Isometric projection helper
+  const iso = (x, y, z) => {
+    const rx = x * csr - y * snr;
+    const ry = x * snr + y * csr;
+    const isox = (rx - ry * 0.5) + brainW/2;
+    const isoy = (z + (rx + ry) * 0.25) + brainH/2;
+    return { sx: isox, sy: isoy, depth: z + ry };
+  };
 
-  // Update pyramids (spin)
-  pyramids.forEach(p => {
-    p.obj.rotation.x += p.rotX;
-    p.obj.rotation.y += p.rotY;
-    p.obj.rotation.z += p.rotZ;
-  });
+  // Collect all renderable objects
+  const objects = [];
 
-  // Update rings (rotate around axes)
-  rings.forEach(r => {
-    r.obj.rotation.z += r.speed;
-  });
-
-  // Update nebula clouds (slow rotation)
+  // Add nebula clouds
   nebulaClouds.forEach(n => {
-    n.obj.rotation.x += n.rotX * 0.1;
-    n.obj.rotation.y += n.rotY * 0.1;
-    n.obj.rotation.z += n.rotZ * 0.1;
+    n.phase += n.rotSpeed;
+    const p = iso(n.x, n.y, n.z);
+    objects.push({ type: 'nebula', ...p, size: n.size, opacity: n.opacity });
   });
 
-  // Glow sphere pulsing
-  glowSpheres.forEach(g => {
-    g.phase += 0.01;
-    g.scale = 1 + Math.sin(g.phase) * 0.15;
-    g.obj.scale.set(g.scale, g.scale, g.scale);
+  // Add rings
+  rings.forEach(r => {
+    r.rot += r.speed;
+    for(let i=0;i<120;i++){
+      const angle = (i/120)*6.283 + r.rot;
+      const rx = Math.cos(angle)*r.rx, ry = Math.sin(angle)*r.ry;
+      const p = iso(rx, ry, r.z);
+      if(i % 3 === 0) objects.push({ type: 'ring', ...p, depth: p.depth, color });
+    }
   });
 
-  renderer.render(scene, camera);
+  // Add stars
+  stars.forEach(s => {
+    s.rotX += s.rotX * 0.02;
+    s.rotY += s.rotY * 0.02;
+    const tw = 0.7 + 0.3 * Math.sin(brainTime * 1.3 + s.twinkle);
+    const p = iso(s.x, s.y, s.z);
+    objects.push({ type: 'star', ...p, size: s.size * tw, opacity: s.opacity * tw, points: s.points });
+  });
+
+  // Add pyramids
+  pyramids.forEach(p => {
+    p.rotX += p.rotSpeedX;
+    p.rotY += p.rotSpeedY;
+    p.rotZ += p.rotSpeedZ;
+    const pp = iso(p.x, p.y, p.z);
+    objects.push({ type: 'pyramid', ...pp, size: p.size, opacity: p.opacity, rotX: p.rotX, rotY: p.rotY, wireframe: p.wireframe });
+  });
+
+  // Central core glow
+  const core = iso(0, 0, 0);
+  const coreScale = 1 + 0.2 * Math.sin(brainTime * 0.8);
+  objects.push({ type: 'core', sx: core.sx, sy: core.sy, depth: 0, size: 28 * coreScale });
+
+  // Sort by depth (painter's algorithm)
+  objects.sort((a, b) => a.depth - b.depth);
+
+  // Render objects
+  const r8 = Math.max(0,Math.min(255,Math.round(rgb[0]*255)));
+  const g8 = Math.max(0,Math.min(255,Math.round(rgb[1]*255)));
+  const b8 = Math.max(0,Math.min(255,Math.round(rgb[2]*255)));
+
+  objects.forEach(obj => {
+    ctx.globalAlpha = obj.opacity || 1;
+    if(obj.type === 'nebula'){
+      const grad = ctx.createRadialGradient(obj.sx, obj.sy, 0, obj.sx, obj.sy, obj.size);
+      grad.addColorStop(0, `rgba(${r8},${g8},${b8},0.15)`);
+      grad.addColorStop(0.5, `rgba(${r8},${g8},${b8},0.05)`);
+      grad.addColorStop(1, `rgba(${r8},${g8},${b8},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(obj.sx, obj.sy, obj.size, 0, 6.283);
+      ctx.fill();
+    } else if(obj.type === 'ring'){
+      ctx.strokeStyle = `rgba(${r8},${g8},${b8},0.12)`;
+      ctx.lineWidth = 1;
+      ctx.fillStyle = 'transparent';
+      ctx.beginPath();
+      ctx.arc(obj.sx, obj.sy, 4, 0, 6.283);
+      ctx.stroke();
+    } else if(obj.type === 'star'){
+      ctx.fillStyle = `rgba(255,255,255,${obj.opacity})`;
+      ctx.beginPath();
+      const angle = -Math.PI/2;
+      for(let i=0;i<obj.points*2;i++){
+        const a = angle + (i/obj.points)*Math.PI;
+        const r = i%2 ? obj.size*0.4 : obj.size;
+        const x = obj.sx + Math.cos(a)*r;
+        const y = obj.sy + Math.sin(a)*r;
+        if(i===0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else if(obj.type === 'pyramid'){
+      ctx.fillStyle = `rgba(${r8},${g8},${b8},${obj.opacity})`;
+      if(obj.wireframe) ctx.strokeStyle = ctx.fillStyle;
+      ctx.beginPath();
+      const s = obj.size;
+      ctx.moveTo(obj.sx, obj.sy - s);
+      ctx.lineTo(obj.sx + s*0.85, obj.sy + s*0.5);
+      ctx.lineTo(obj.sx - s*0.85, obj.sy + s*0.5);
+      ctx.closePath();
+      obj.wireframe ? ctx.stroke() : ctx.fill();
+    } else if(obj.type === 'core'){
+      const grad = ctx.createRadialGradient(obj.sx, obj.sy, 0, obj.sx, obj.sy, obj.size);
+      grad.addColorStop(0, `rgba(255,255,255,0.8)`);
+      grad.addColorStop(0.3, `rgba(${r8},${g8},${b8},0.6)`);
+      grad.addColorStop(1, `rgba(${r8},${g8},${b8},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(obj.sx, obj.sy, obj.size, 0, 6.283);
+      ctx.fill();
+    }
+  });
+
+  ctx.globalAlpha = 1;
 }
+
+function brainLoop(){ brainDraw(); brainAnim=requestAnimationFrame(brainLoop); }
 function stopBrain(){ if(brainAnim){ cancelAnimationFrame(brainAnim); brainAnim=null; } }
+
+function resizeBrain(){
+  if(!brainCanvas) return;
+  const rect = brainCanvas.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  brainW = rect.width; brainH = rect.height;
+  brainCanvas.width = Math.round(brainW*dpr); brainCanvas.height = Math.round(brainH*dpr);
+  brainCtx.setTransform(dpr,0,0,dpr,0,0);
+}
 
 function renderBrain(){
   brainCanvas = document.getElementById('brainCanvas');
-  if(!brainCanvas || scene) return; // Only init once
-
-  // Three.js scene setup
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
-  camera.position.set(0, 100, 200);
-  camera.lookAt(0, 0, 0);
-
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas: brainCanvas });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x000000, 0.1);
-
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-  scene.add(ambientLight);
-  const pointLight = new THREE.PointLight(0xffffff, 0.8);
-  pointLight.position.set(100, 100, 100);
-  scene.add(pointLight);
-
-  // Build 3D scene
-  build3DGalaxy();
-
-  // Start animation
-  if(!brainAnim) {
-    const loop = () => {
-      animate3D();
-      brainAnim = requestAnimationFrame(loop);
-    };
-    brainAnim = requestAnimationFrame(loop);
-  }
-
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    if(scene && renderer && camera){
-      const w = window.innerWidth, h = window.innerHeight;
-      camera.aspect = w/h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    }
-  });
+  if(!brainCanvas || brainCtx) return; // Only init once
+  brainCtx = brainCanvas.getContext('2d');
+  resizeBrain();
+  buildGalaxy();
+  if(!brainAnim) brainLoop();
 }
 function addFactFromUI(){
   const cat=document.getElementById('factCat').value;
@@ -1177,9 +1198,10 @@ function toggleBrainFullscreen(){
   const st=document.getElementById('brainStage'); if(!st) return;
   st.classList.toggle('fs');
   if(!brainAnim) renderBrain();
-  setTimeout(()=>{ if(renderer){ const w=window.innerWidth, h=window.innerHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); } }, 60);
+  setTimeout(()=>{ resizeBrain(); }, 60);
 }
-window.addEventListener('keydown', (e) => { if(e.key==='Escape'){ const st=document.getElementById('brainStage'); if(st && st.classList.contains('fs')){ st.classList.remove('fs'); if(renderer){ setTimeout(()=>{ const rect=st.getBoundingClientRect(); renderer.setSize(rect.width,rect.height); camera.aspect=rect.width/rect.height; camera.updateProjectionMatrix(); }, 60); } } } });
+window.addEventListener('resize', () => { if(brainAnim) resizeBrain(); });
+window.addEventListener('keydown', (e) => { if(e.key==='Escape'){ const st=document.getElementById('brainStage'); if(st && st.classList.contains('fs')){ st.classList.remove('fs'); setTimeout(()=>{ resizeBrain(); }, 60); } } });
 
 // ---------------- Projekte ----------------
 const STATUS_BADGE = { 'Planung':'badge-blue', 'In Arbeit':'warn', 'Fast fertig':'badge-green', 'Abgeschlossen':'badge-green' };
