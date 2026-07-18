@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilal Personal Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #22c55e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .glass-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, var(--color-primary), #16a34a);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+        }
+
+        .glass-button:hover {
+            box-shadow: 0 6px 25px rgba(34, 197, 94, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 24px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 20px;
+            background: linear-gradient(to right, #4ade80, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav button {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-nav button:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-nav button.active {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #22c55e;
+        }
+
+        .sidebar-separator {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            margin-top: auto;
+        }
+
+        .sidebar-separator button {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-separator button.active {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #22c55e;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: white;
+        }
+
+        .header-mic {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .header-mic:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* Forms */
+        input, select, textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            font-family: inherit;
+            margin-bottom: 8px;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #666;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: rgba(34, 197, 94, 0.5);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .grid, .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(34, 197, 94, 0.4);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(34, 197, 94, 0.6);
+        }
+
+        /* Tabs */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Stats */
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #22c55e;
+            margin-top: 8px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Atlas Dashboard</h2>
+                <p>Bilal's Personal Hub</p>
+            </div>
+
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <button class="tab-btn active" data-tab="analytics">📊 Analytics</button>
+                <button class="tab-btn" data-tab="finances">💰 Finanzen</button>
+                <button class="tab-btn" data-tab="aboutme">👤 Über mich</button>
+                <button class="tab-btn" data-tab="projects">🚀 Projekte</button>
+                <button class="tab-btn" data-tab="clients">🤝 Kunden</button>
+                <button class="tab-btn" data-tab="atlas">🤖 Atlas KI</button>
+            </nav>
+
+            <div class="sidebar-separator">
+                <button class="tab-btn" data-tab="settings">⚙️ Einstellungen</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1 id="tab-title">📊 Analytics</h1>
+                <div class="header-mic" title="Mikrofon" onclick="toggleMic()">🎤</div>
+            </div>
+
+            <!-- Content -->
+            <div class="content-area">
+                <!-- Analytics Tab -->
+                <div class="tab-content active" id="analytics">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Gesamte Besuche</div>
+                            <div class="stat-value" id="total-visits">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Websites</div>
+                            <div class="stat-value" id="total-websites">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Durchschnitt</div>
+                            <div class="stat-value" id="avg-visits">0</div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3 style="margin-bottom: 16px; color: white;">Website hinzufügen</h3>
+                        <input type="text" id="website-name" placeholder="Website Name">
+                        <input type="url" id="website-url" placeholder="URL">
+                        <input type="number" id="website-visits" placeholder="Besuche">
+                        <button class="glass-button" onclick="addWebsite()">Hinzufügen</button>
+                    </div>
+
+                    <div class="glass-card" style="margin-top: 16px;">
+                        <h3 style="margin-bottom: 16px; color: white;">Websites</h3>
+                        <div id="websites-list"></div>
+                    </div>
+                </div>
+
+                <!-- Finances Tab -->
+                <div class="tab-content" id="finances">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Einnahmen (diese Monat)</div>
+                            <div class="stat-value" id="income-month">0€</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Ausgaben (diese Monat)</div>
+                            <div class="stat-value" style="color: #ef4444;" id="expenses-month">0€</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Netto-Gewinn</div>
+                            <div class="stat-value" id="net-profit">0€</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="glass-card">
+                            <h3 style="margin-bottom: 16px; color: white;">Einnahmen</h3>
+                            <input type="text" id="income-desc" placeholder="Beschreibung">
+                            <input type="number" id="income-amount" placeholder="Betrag (€)">
+                            <button class="glass-button" onclick="addIncome()" style="width: 100%; margin-top: 8px;">Hinzufügen</button>
+                            <div id="income-list" style="margin-top: 16px;"></div>
+                        </div>
+
+                        <div class="glass-card">
+                            <h3 style="margin-bottom: 16px; color: white;">Ausgaben</h3>
+                            <input type="text" id="expense-desc" placeholder="Beschreibung">
+                            <input type="number" id="expense-amount" placeholder="Betrag (€)">
+                            <button class="glass-button" onclick="addExpense()" style="width: 100%; margin-top: 8px;">Hinzufügen</button>
+                            <div id="expense-list" style="margin-top: 16px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About Me Tab -->
+                <div class="tab-content" id="aboutme">
+                    <div class="glass-card">
+                        <h2 style="color: white; margin-bottom: 16px;" id="profile-name">Bilal</h2>
+                        <p style="color: #999; margin-bottom: 16px;" id="profile-who">Student + Entrepreneur</p>
+
+                        <div id="profile-display">
+                            <p style="margin-bottom: 16px;">
+                                <strong style="color: #22c55e;">Alter:</strong> <span id="profile-age">14</span> Jahre
+                            </p>
+                            <p style="margin-bottom: 16px;">
+                                <strong style="color: #22c55e;">Geburtstag:</strong> <span id="profile-bday">30.05</span>
+                            </p>
+                            <p style="margin-bottom: 16px;">
+                                <strong style="color: #22c55e;">Ziele:</strong> <span id="profile-goals" style="color: white;"></span>
+                            </p>
+                            <p style="margin-bottom: 16px;">
+                                <strong style="color: #22c55e;">Interessen:</strong> <span id="profile-interests" style="color: white;"></span>
+                            </p>
+                            <button class="glass-button" onclick="editProfile()">Bearbeiten</button>
+                        </div>
+
+                        <div id="profile-edit" style="display: none;">
+                            <input type="text" id="edit-name" placeholder="Name">
+                            <input type="date" id="edit-bday" placeholder="Geburtstag">
+                            <input type="text" id="edit-who" placeholder="Wer bin ich?">
+                            <textarea id="edit-goals" placeholder="Ziele" style="min-height: 60px;"></textarea>
+                            <textarea id="edit-interests" placeholder="Interessen" style="min-height: 60px;"></textarea>
+                            <button class="glass-button" onclick="saveProfile()" style="width: 100%; margin-top: 8px;">Speichern</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects Tab -->
+                <div class="tab-content" id="projects">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Anzahl Projekte</div>
+                            <div class="stat-value" id="project-count">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Gesamt Verdienst</div>
+                            <div class="stat-value" id="project-earnings">0€</div>
+                        </div>
+                    </div>
+
+                    <button class="glass-button" onclick="addProjectForm()" style="margin-bottom: 16px; width: 100%;">+ Projekt hinzufügen</button>
+
+                    <div class="grid" id="projects-list"></div>
+                </div>
+
+                <!-- Clients Tab -->
+                <div class="tab-content" id="clients">
+                    <div class="grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Gesamt Kunden</div>
+                            <div class="stat-value" id="client-count">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Aktiv</div>
+                            <div class="stat-value" id="client-active">0</div>
+                        </div>
+                    </div>
+
+                    <button class="glass-button" onclick="addClientForm()" style="margin-bottom: 16px; width: 100%;">+ Kunde hinzufügen</button>
+
+                    <div class="grid" id="clients-list"></div>
+                </div>
+
+                <!-- Atlas KI Tab -->
+                <div class="tab-content" id="atlas">
+                    <div class="glass-card">
+                        <h3 style="color: white; margin-bottom: 16px;">🤖 Atlas Status</h3>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 12px; height: 12px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                            <span style="color: #22c55e;">✓ Atlas bereit</span>
+                        </div>
+
+                        <div style="margin-top: 24px;">
+                            <h4 style="color: white; margin-bottom: 12px;">Chat mit Atlas</h4>
+                            <div id="atlas-chat" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; height: 300px; overflow-y: auto; padding: 16px; margin-bottom: 12px;">
+                                <p style="color: #999; text-align: center; padding-top: 120px;">Chat-Historie wird hier angezeigt...</p>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="atlas-input" placeholder="Nachricht eingeben..." style="flex: 1;">
+                                <button class="glass-button" onclick="sendAtlasMessage()">📤</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <p style="color: #999; font-size: 12px;">💡 Tipp: Atlas kann deine Finanzen tracken, Berichte schreiben und dir bei der Automatisierung helfen.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-content" id="settings">
+                    <div class="glass-card">
+                        <h3 style="color: white; margin-bottom: 16px;">🎨 Dashboard Design</h3>
+                        <label style="display: block; margin-bottom: 8px; color: #999;">Primärfarbe:</label>
+                        <input type="color" id="primary-color" value="#22c55e" onchange="changePrimaryColor(this.value)" style="width: 60px; height: 40px; margin-bottom: 16px;">
+                    </div>
+
+                    <div class="glass-card" style="margin-top: 16px;">
+                        <h3 style="color: white; margin-bottom: 16px;">💾 Datenverwaltung</h3>
+                        <button class="glass-button" onclick="exportData()" style="width: 100%; margin-bottom: 8px;">📥 Daten exportieren</button>
+                        <button class="glass-button" onclick="importData()" style="width: 100%; margin-bottom: 8px;">📤 Daten importieren</button>
+                        <button class="glass-button" onclick="clearData()" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); border-color: rgba(239, 68, 68, 0.3);">🗑️ Alle Daten löschen</button>
+                    </div>
+
+                    <div class="glass-card" style="margin-top: 16px;">
+                        <h3 style="color: white; margin-bottom: 12px;">ℹ️ Über</h3>
+                        <p style="font-size: 12px; color: #999;">
+                            <strong>Bilal Personal Dashboard v1.0</strong><br>
+                            Ein modernes, offline-fähiges Dashboard für Finanz-Tracking und Projektmanagement.<br>
+                            Alle Daten werden lokal in deinem Browser gespeichert.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Management
+        const DEFAULT_DATA = {
+            profile: {
+                name: 'Bilal',
+                age: 14,
+                birthday: '2010-05-30',
+                who: 'Student + Entrepreneur',
+                goals: 'Finanziell frei, ohne 08/15 Job',
+                interests: 'Anime, Power-Scaling, Tech, Webseitenbau'
+            },
+            analytics: { websites: [] },
+            finances: { income: [], expenses: [] },
+            projects: [],
+            clients: [],
+            settings: { primaryColor: '#22c55e' }
+        };
+
+        function getData() {
+            const stored = localStorage.getItem('dashboard-data');
+            return stored ? JSON.parse(stored) : DEFAULT_DATA;
+        }
+
+        function saveData(data) {
+            localStorage.setItem('dashboard-data', JSON.stringify(data));
+        }
+
+        function initData() {
+            if (!localStorage.getItem('dashboard-data')) {
+                saveData(DEFAULT_DATA);
+            }
+        }
+
+        // Tab Switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+                switchTab(tabName);
+            });
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            const titles = {
+                analytics: '📊 Analytics',
+                finances: '💰 Finanzen',
+                aboutme: '👤 Über mich',
+                projects: '🚀 Projekte',
+                clients: '🤝 Kunden',
+                atlas: '🤖 Atlas KI',
+                settings: '⚙️ Einstellungen'
+            };
+
+            document.getElementById('tab-title').textContent = titles[tabName];
+
+            if (tabName === 'analytics') loadAnalytics();
+            if (tabName === 'finances') loadFinances();
+            if (tabName === 'aboutme') loadAboutMe();
+            if (tabName === 'projects') loadProjects();
+            if (tabName === 'clients') loadClients();
+        }
+
+        // Analytics
+        function loadAnalytics() {
+            const data = getData();
+            const websites = data.analytics.websites;
+            const total = websites.reduce((sum, w) => sum + w.visits, 0);
+
+            document.getElementById('total-visits').textContent = total;
+            document.getElementById('total-websites').textContent = websites.length;
+            document.getElementById('avg-visits').textContent = websites.length > 0 ? Math.round(total / websites.length) : 0;
+
+            let html = '';
+            websites.forEach((site, idx) => {
+                html += `
+                    <div class="glass-card" style="margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <p style="color: white; font-weight: 600;">${site.name}</p>
+                                <p style="font-size: 12px; color: #999;">${site.url}</p>
+                                <p style="color: #22c55e; margin-top: 8px;">${site.visits} Besuche</p>
+                            </div>
+                            <button onclick="deleteWebsite(${idx})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;">Löschen</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('websites-list').innerHTML = html || '<p style="color: #999;">Keine Websites hinzugefügt</p>';
+        }
+
+        function addWebsite() {
+            const name = document.getElementById('website-name').value;
+            const url = document.getElementById('website-url').value;
+            const visits = parseInt(document.getElementById('website-visits').value) || 0;
+
+            if (name && url && visits) {
+                const data = getData();
+                data.analytics.websites.push({ name, url, visits, date: new Date().toISOString().split('T')[0] });
+                saveData(data);
+
+                document.getElementById('website-name').value = '';
+                document.getElementById('website-url').value = '';
+                document.getElementById('website-visits').value = '';
+
+                loadAnalytics();
+            }
+        }
+
+        function deleteWebsite(idx) {
+            const data = getData();
+            data.analytics.websites.splice(idx, 1);
+            saveData(data);
+            loadAnalytics();
+        }
+
+        // Finances
+        function loadFinances() {
+            const data = getData();
+            const today = new Date();
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            const income = data.finances.income
+                .filter(i => new Date(i.date) >= monthStart)
+                .reduce((sum, i) => sum + i.amount, 0);
+
+            const expenses = data.finances.expenses
+                .filter(e => new Date(e.date) >= monthStart)
+                .reduce((sum, e) => sum + e.amount, 0);
+
+            const profit = income - expenses;
+
+            document.getElementById('income-month').textContent = income.toFixed(2) + '€';
+            document.getElementById('expenses-month').textContent = expenses.toFixed(2) + '€';
+            document.getElementById('net-profit').textContent = profit.toFixed(2) + '€';
+
+            let incomeHtml = '';
+            data.finances.income.forEach((item, idx) => {
+                incomeHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(34,197,94,0.1); border-radius: 4px; margin-bottom: 4px;">
+                        <div>
+                            <p style="color: white; font-size: 12px;">${item.description}</p>
+                            <p style="color: #999; font-size: 10px;">${item.date}</p>
+                        </div>
+                        <span style="color: #22c55e; font-weight: 600;">${item.amount.toFixed(2)}€</span>
+                    </div>
+                `;
+            });
+            document.getElementById('income-list').innerHTML = incomeHtml || '<p style="color: #999; font-size: 12px;">Keine Einnahmen</p>';
+
+            let expenseHtml = '';
+            data.finances.expenses.forEach((item, idx) => {
+                expenseHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(239,68,68,0.1); border-radius: 4px; margin-bottom: 4px;">
+                        <div>
+                            <p style="color: white; font-size: 12px;">${item.description}</p>
+                            <p style="color: #999; font-size: 10px;">${item.date}</p>
+                        </div>
+                        <span style="color: #ef4444; font-weight: 600;">${item.amount.toFixed(2)}€</span>
+                    </div>
+                `;
+            });
+            document.getElementById('expense-list').innerHTML = expenseHtml || '<p style="color: #999; font-size: 12px;">Keine Ausgaben</p>';
+        }
+
+        function addIncome() {
+            const desc = document.getElementById('income-desc').value;
+            const amount = parseFloat(document.getElementById('income-amount').value) || 0;
+
+            if (desc && amount > 0) {
+                const data = getData();
+                data.finances.income.push({ description: desc, amount, date: new Date().toISOString().split('T')[0] });
+                saveData(data);
+
+                document.getElementById('income-desc').value = '';
+                document.getElementById('income-amount').value = '';
+
+                loadFinances();
+            }
+        }
+
+        function addExpense() {
+            const desc = document.getElementById('expense-desc').value;
+            const amount = parseFloat(document.getElementById('expense-amount').value) || 0;
+
+            if (desc && amount > 0) {
+                const data = getData();
+                data.finances.expenses.push({ description: desc, amount, date: new Date().toISOString().split('T')[0] });
+                saveData(data);
+
+                document.getElementById('expense-desc').value = '';
+                document.getElementById('expense-amount').value = '';
+
+                loadFinances();
+            }
+        }
+
+        // About Me
+        function loadAboutMe() {
+            const data = getData();
+            const profile = data.profile;
+
+            document.getElementById('profile-name').textContent = profile.name;
+            document.getElementById('profile-who').textContent = profile.who;
+            document.getElementById('profile-age').textContent = profile.age;
+            document.getElementById('profile-goals').textContent = profile.goals;
+            document.getElementById('profile-interests').textContent = profile.interests;
+
+            const bday = new Date(profile.birthday);
+            document.getElementById('profile-bday').textContent = bday.toLocaleDateString('de-DE', { month: '2-digit', day: '2-digit' });
+        }
+
+        function editProfile() {
+            const data = getData();
+            const profile = data.profile;
+
+            document.getElementById('edit-name').value = profile.name;
+            document.getElementById('edit-bday').value = profile.birthday;
+            document.getElementById('edit-who').value = profile.who;
+            document.getElementById('edit-goals').value = profile.goals;
+            document.getElementById('edit-interests').value = profile.interests;
+
+            document.getElementById('profile-display').style.display = 'none';
+            document.getElementById('profile-edit').style.display = 'block';
+        }
+
+        function saveProfile() {
+            const data = getData();
+            data.profile = {
+                name: document.getElementById('edit-name').value,
+                age: 14,
+                birthday: document.getElementById('edit-bday').value,
+                who: document.getElementById('edit-who').value,
+                goals: document.getElementById('edit-goals').value,
+                interests: document.getElementById('edit-interests').value
+            };
+            saveData(data);
+
+            document.getElementById('profile-display').style.display = 'block';
+            document.getElementById('profile-edit').style.display = 'none';
+
+            loadAboutMe();
+        }
+
+        // Projects
+        function loadProjects() {
+            const data = getData();
+            const projects = data.projects;
+
+            document.getElementById('project-count').textContent = projects.length;
+            document.getElementById('project-earnings').textContent = projects.reduce((sum, p) => sum + (p.earnings || 0), 0) + '€';
+
+            let html = '';
+            projects.forEach((proj, idx) => {
+                html += `
+                    <div class="glass-card">
+                        <h4 style="color: white; margin-bottom: 12px;">${proj.name}</h4>
+                        <p style="color: #999; font-size: 12px; margin-bottom: 12px;">${proj.status}</p>
+                        <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin-bottom: 8px; overflow: hidden;">
+                            <div style="background: #22c55e; height: 100%; width: ${proj.progress || 0}%;"></div>
+                        </div>
+                        <p style="font-size: 12px; color: #999; margin-bottom: 12px;">Progress: ${proj.progress || 0}%</p>
+                        <p style="color: #22c55e; font-weight: 600;">${proj.earnings || 0}€ Verdienst</p>
+                    </div>
+                `;
+            });
+            document.getElementById('projects-list').innerHTML = html || '<p style="color: #999;">Keine Projekte</p>';
+        }
+
+        function addProjectForm() {
+            const name = prompt('Projektname:');
+            if (name) {
+                const data = getData();
+                data.projects.push({ name, status: 'Planning', progress: 0, earnings: 0 });
+                saveData(data);
+                loadProjects();
+            }
+        }
+
+        // Clients
+        function loadClients() {
+            const data = getData();
+            const clients = data.clients;
+
+            document.getElementById('client-count').textContent = clients.length;
+            document.getElementById('client-active').textContent = clients.filter(c => c.status === 'Aktiv').length;
+
+            let html = '';
+            clients.forEach((client, idx) => {
+                html += `
+                    <div class="glass-card">
+                        <h4 style="color: white; margin-bottom: 8px;">${client.name}</h4>
+                        <p style="font-size: 12px; color: #999; margin-bottom: 12px;">${client.type}</p>
+                        <p style="font-size: 12px; color: #999; margin-bottom: 8px;">${client.contact}</p>
+                        <p style="color: #22c55e; font-size: 12px; font-weight: 600;">${client.status}</p>
+                    </div>
+                `;
+            });
+            document.getElementById('clients-list').innerHTML = html || '<p style="color: #999;">Keine Kunden</p>';
+        }
+
+        function addClientForm() {
+            const name = prompt('Kundenname:');
+            if (name) {
+                const data = getData();
+                data.clients.push({ name, type: 'Business', contact: '', status: 'Neu' });
+                saveData(data);
+                loadClients();
+            }
+        }
+
+        // Atlas
+        function sendAtlasMessage() {
+            const input = document.getElementById('atlas-input');
+            const msg = input.value.trim();
+
+            if (msg) {
+                const chat = document.getElementById('atlas-chat');
+                const msgEl = document.createElement('div');
+                msgEl.style.marginBottom = '12px';
+                msgEl.style.display = 'flex';
+                msgEl.style.justifyContent = 'flex-end';
+
+                msgEl.innerHTML = `
+                    <div style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 8px; padding: 8px 12px; max-width: 70%; color: #22c55e; font-size: 12px;">
+                        ${msg}
+                    </div>
+                `;
+                chat.appendChild(msgEl);
+
+                input.value = '';
+                chat.scrollTop = chat.scrollHeight;
+            }
+        }
+
+        // Settings
+        function changePrimaryColor(color) {
+            document.documentElement.style.setProperty('--color-primary', color);
+            const data = getData();
+            data.settings.primaryColor = color;
+            saveData(data);
+        }
+
+        function exportData() {
+            const data = getData();
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bilal-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        saveData(data);
+                        alert('Daten importiert! Seite wird neu geladen...');
+                        location.reload();
+                    } catch (err) {
+                        alert('Fehler beim Importieren: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function clearData() {
+            if (confirm('⚠️ Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden!')) {
+                localStorage.removeItem('dashboard-data');
+                alert('Daten gelöscht!');
+                location.reload();
+            }
+        }
+
+        // Mic
+        function toggleMic() {
+            alert('🎤 Spracheingabe ist in dieser Version nicht aktiviert.\n\nFunktioniert nur mit Web Speech API im Browser.');
+        }
+
+        // Load primary color
+        function loadSettings() {
+            const data = getData();
+            if (data.settings.primaryColor) {
+                document.documentElement.style.setProperty('--color-primary', data.settings.primaryColor);
+                document.getElementById('primary-color').value = data.settings.primaryColor;
+            }
+        }
+
+        // Init
+        initData();
+        loadSettings();
+        loadAnalytics();
+    </script>
+</body>
+</html>
