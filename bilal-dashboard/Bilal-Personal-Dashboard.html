@@ -292,6 +292,14 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
+  /* Trend badge */
+  .trend { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+  .trend.up { color: var(--primary); background: rgba(var(--primary-rgb), 0.15); }
+  .trend.down { color: var(--danger); background: rgba(var(--danger-rgb), 0.15); }
+  .trend.flat, .trend.neu { color: var(--text-dim); background: rgba(255,255,255,0.06); }
+  .btn-icon.listening { background: rgba(var(--danger-rgb), 0.3); border-color: var(--danger); color: var(--danger); animation: pulse 1s infinite; }
+  .chat-msg.typing { color: var(--text-dim); font-style: italic; }
+
   /* Scrollbar */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -346,6 +354,11 @@
       <div class="grid-2">
         <div class="card">
           <div class="card-title">📈 Website Besuche</div>
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+            <div class="stat-large" id="visitsTotal" style="font-size:38px;">0</div>
+            <span id="visitsTrend"></span>
+          </div>
+          <div class="stat-label" id="visitsSub">Gesamte Besuche · Veränderung seit letztem Update</div>
           <div class="chart empty" id="visitsChart">Noch keine Daten</div>
         </div>
         <div class="card">
@@ -489,13 +502,15 @@
           <div class="status-dot"></div><span style="color:var(--primary);font-size:14px;" id="atlasStatus">Atlas bereit (Offline-Modus)</span>
         </div>
         <div class="chat-box" id="chatBox">
-          <div class="chat-msg atlas">Hi Bilal! 👋 Ich bin Atlas. Schreib mir, was du gemacht hast — z.B. „Ich habe eine Website für 300€ verkauft" und ich buche es für dich.</div>
+          <div class="chat-msg atlas">Hi Bilal! 👋 Ich bin Atlas, dein Assistent. Sag oder schreib mir einfach, was du gemacht hast — z.B. „Ich habe eine Website für 300€ verkauft" oder „neuer Kunde Max, Status aktiv" — und ich trage alles für dich ein.</div>
         </div>
-        <div style="display:flex;gap:10px;">
-          <input type="text" id="atlasInput" placeholder="Nachricht an Atlas..." onkeydown="if(event.key==='Enter')sendAtlas()">
-          <button class="btn-icon" onclick="sendAtlas()">📤</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="text" id="atlasInput" style="flex:1;min-width:180px;" placeholder="Nachricht an Atlas..." onkeydown="if(event.key==='Enter')sendAtlas()">
+          <button class="btn-icon" id="micBtn" onclick="startListening(true)" title="Sprechen">🎤</button>
+          <button class="btn-icon" onclick="sendAtlas()" title="Senden">📤</button>
         </div>
-        <p class="stat-label" style="margin-top:4px;">💡 Atlas kann Einnahmen aus deinen Nachrichten erkennen und automatisch in die Finanzen eintragen.</p>
+        <button class="btn btn-full" id="liveBtn" onclick="toggleLive()">🎙️ Live-Gespräch starten</button>
+        <p class="stat-label" style="margin-top:4px;line-height:1.5;">💡 Mit API-Key (Einstellungen → Claude API) wird Atlas ein echter KI-Chat. Ohne Key erkennt er einfache Befehle. Sprache funktioniert in Chrome, Edge & Opera.</p>
       </div>
     </section>
 
@@ -595,10 +610,25 @@
           </div>
           <div class="setting-item">
             <div class="setting-label">API-Key</div>
-            <input type="password" id="setApiKey" placeholder="sk-..." onchange="saveApiKey()">
+            <input type="password" id="setApiKey" placeholder="sk-ant-..." onchange="saveApiKey()">
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Modell</div>
+            <select id="setModel" onchange="saveSettingsFromUI()">
+              <option value="claude-haiku-4-5-20251001">Schnell & günstig (Haiku 4.5)</option>
+              <option value="claude-sonnet-5">Ausgewogen (Sonnet 5)</option>
+              <option value="claude-opus-4-8">Am schlausten (Opus 4.8)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">Antworten vorlesen</div>
+            <div class="toggle-switch"><div class="toggle" id="tgSpeak" onclick="toggleSetting('speakReplies', this)"></div><span class="toggle-label">An/Aus</span></div>
           </div>
           <div class="setting-item">
             <button class="btn btn-full" onclick="saveApiKey()">🔗 Speichern & prüfen</button>
+          </div>
+          <div class="setting-item">
+            <div class="stat-label" style="text-transform:none;line-height:1.5;">🔑 Key holen auf <b>console.anthropic.com</b> → „API Keys". Dein Key bleibt nur lokal auf deinem PC gespeichert und wird an niemanden außer Anthropic gesendet.</div>
           </div>
         </div>
 
@@ -633,9 +663,11 @@ const DEFAULT_DATA = {
   expenses: [],
   projects: [],
   clients: [],
+  chat: [],
   settings: { primaryColor: '#22c55e', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
     voice: 'neutral', volume: 75, speed: 'normal',
-    autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal', apiKey: '' }
+    autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal',
+    apiKey: '', model: 'claude-haiku-4-5-20251001', speakReplies: true }
 };
 
 let data = load();
@@ -688,6 +720,7 @@ function renderView(v) {
   if (v === 'ueber') renderProfile();
   if (v === 'projekte') renderProjects();
   if (v === 'kunden') renderClients();
+  if (v === 'atlas') { renderChat(); updateAtlasStatus(); }
   if (v === 'einstellungen') renderSettings();
 }
 function refreshAll() { renderAnalytics(); renderFinances(); renderProjects(); renderClients(); }
@@ -702,7 +735,20 @@ function daysLeftInMonth() {
   return end.getDate() - now.getDate();
 }
 
+function trendBadge(cur, prev) {
+  if (!prev) return '<span class="trend neu">neu</span>';
+  const pct = ((cur - prev) / prev) * 100;
+  if (Math.round(pct) === 0) return '<span class="trend flat">→ 0 %</span>';
+  const up = pct > 0;
+  return `<span class="trend ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(pct).toFixed(0)} %</span>`;
+}
+
 function renderAnalytics() {
+  // Gesamtzahl + Trend
+  const total = data.websites.reduce((s,w) => s + (w.visits||0), 0);
+  const prevTotal = data.websites.reduce((s,w) => s + (w.prevVisits||0), 0);
+  document.getElementById('visitsTotal').textContent = total.toLocaleString('de-DE');
+  document.getElementById('visitsTrend').innerHTML = data.websites.length ? trendBadge(total, prevTotal) : '';
   // Chart
   const chart = document.getElementById('visitsChart');
   if (!data.websites.length) {
@@ -712,7 +758,7 @@ function renderAnalytics() {
     chart.className = 'chart';
     const max = Math.max(...data.websites.map(w => w.visits), 1);
     chart.innerHTML = data.websites.map(w => `
-      <div class="bar-wrap" title="${esc(w.name)}: ${w.visits}">
+      <div class="bar-wrap" title="${esc(w.name)}: ${w.visits} Besuche">
         <div class="bar-val">${w.visits}</div>
         <div class="bar" style="height:${Math.max(4, (w.visits/max)*140)}px"></div>
         <div class="bar-name">${esc(w.name)}</div>
@@ -735,8 +781,12 @@ function renderAnalytics() {
   document.getElementById('websiteList').innerHTML = data.websites.length
     ? data.websites.map((w,i) => `
       <div class="list-row">
-        <div><div class="row-title">${esc(w.name)}</div><div class="row-sub">${esc(w.url)} · ${w.visits} Besuche</div></div>
-        <button class="del-btn" onclick="delWebsite(${i})">Löschen</button>
+        <div><div class="row-title">${esc(w.name)} ${trendBadge(w.visits||0, w.prevVisits||0)}</div>
+          <div class="row-sub">${esc(w.url)||'—'} · ${w.visits} Besuche</div></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="del-btn" style="color:var(--primary)" onclick="updateVisits(${i})" title="Besucherzahl aktualisieren">⟳ Besuche</button>
+          <button class="del-btn" onclick="delWebsite(${i})">Löschen</button>
+        </div>
       </div>`).join('')
     : '<div class="empty-hint">Keine Websites hinzugefügt</div>';
 }
@@ -745,10 +795,18 @@ function addWebsite() {
   const url = document.getElementById('wUrl').value.trim();
   const visits = parseInt(document.getElementById('wVisits').value) || 0;
   if (!name) return toast('Bitte einen Namen eingeben');
-  data.websites.push({ name, url, visits, date: todayStr() });
+  data.websites.push({ name, url, visits, prevVisits: 0, date: todayStr() });
   save();
   document.getElementById('wName').value = ''; document.getElementById('wUrl').value = ''; document.getElementById('wVisits').value = '';
   renderAnalytics(); toast('Website hinzugefügt ✔');
+}
+function updateVisits(i) {
+  const w = data.websites[i];
+  const v = prompt(`Neue Besucherzahl für "${w.name}":`, w.visits);
+  if (v === null) return;
+  w.prevVisits = w.visits || 0;
+  w.visits = parseInt(v) || 0;
+  save(); renderAnalytics(); toast('Besuche aktualisiert ✔');
 }
 function delWebsite(i) { data.websites.splice(i,1); save(); renderAnalytics(); }
 
@@ -922,30 +980,231 @@ function addClient() {
 function setClientStatus(i, s) { data.clients[i].status = s; save(); renderClients(); }
 function delClient(i) { data.clients.splice(i,1); save(); renderClients(); }
 
-// ---------------- Atlas Chat ----------------
-function sendAtlas() {
+// ---------------- Atlas Chat (echte KI + Sprache) ----------------
+const ATLAS_SYSTEM =
+`Du bist Atlas, der persönliche KI-Assistent und "Mitarbeiter" von Bilal (14 Jahre, Schüler & Jung-Unternehmer).
+Sprich locker, freundlich und motivierend auf Deutsch. Halte Antworten kurz (1-3 Sätze), da sie auch vorgelesen werden.
+Du hilfst Bilal, sein Dashboard zu pflegen. Wenn er dir etwas nennt, das gespeichert werden soll
+(Einnahme, Ausgabe, Website + Besucherzahl, Kunde, Projekt, oder Profil-Angaben), dann hänge ans ENDE deiner
+Antwort GENAU EINEN Codeblock mit den Aktionen an. Erkläre im normalen Text kurz, was du eingetragen hast,
+aber schreibe das JSON NICHT in den Fließtext.
+Format:
+\`\`\`json
+{"actions":[{"type":"add_income","description":"Website verkauft","amount":300}]}
+\`\`\`
+Erlaubte Aktionen:
+- add_income {description, amount}
+- add_expense {description, amount}
+- add_website {name, url, visits}
+- update_website_visits {name, visits}
+- add_client {name, contact, status}  (status: Neu | Verhandlung | Aktiv | Abgelehnt)
+- add_project {name, status, earnings}  (status: Planung | In Arbeit | Fast fertig | Abgeschlossen)
+- set_profile {field, value}  (field: name | who | goals | interests | birthday)
+Wenn keine Speicher-Aktion nötig ist, lass den JSON-Block komplett weg.`;
+
+function dataContext() {
+  const inc = monthTotal(data.income), exp = monthTotal(data.expenses);
+  return `Aktueller Stand: Einnahmen diesen Monat ${money(inc)}, Ausgaben ${money(exp)}. `
+    + `Websites: ${data.websites.map(w=>w.name+' ('+w.visits+')').join(', ')||'keine'}. `
+    + `Projekte: ${data.projects.map(p=>p.name+' – '+p.status).join(', ')||'keine'}. `
+    + `Kunden: ${data.clients.length}. Profil: ${data.profile.name}, ${calcAge()} Jahre.`;
+}
+
+function addChat(role, text) {
+  const box = document.getElementById('chatBox');
+  box.insertAdjacentHTML('beforeend', `<div class="chat-msg ${role}">${esc(text)}</div>`);
+  box.scrollTop = box.scrollHeight;
+}
+
+function executeAction(a) {
+  if (!a || !a.type) return;
+  const num = v => { const n = parseFloat(String(v).replace(',','.')); return isNaN(n)?0:n; };
+  switch (a.type) {
+    case 'add_income': data.income.push({ description: a.description||'Einnahme', amount: num(a.amount), date: todayStr() }); break;
+    case 'add_expense': data.expenses.push({ description: a.description||'Ausgabe', amount: num(a.amount), date: todayStr() }); break;
+    case 'add_website': data.websites.push({ name: a.name||'Website', url: a.url||'', visits: parseInt(a.visits)||0, prevVisits: 0, date: todayStr() }); break;
+    case 'update_website_visits': {
+      const w = data.websites.find(x => x.name.toLowerCase() === String(a.name||'').toLowerCase());
+      if (w) { w.prevVisits = w.visits||0; w.visits = parseInt(a.visits)||0; }
+      else data.websites.push({ name: a.name||'Website', url:'', visits: parseInt(a.visits)||0, prevVisits: 0, date: todayStr() });
+      break;
+    }
+    case 'add_client': data.clients.push({ name: a.name||'Kunde', contact: a.contact||'', status: a.status||'Neu' }); break;
+    case 'add_project': data.projects.push({ name: a.name||'Projekt', status: a.status||'Planung', progress: STATUS_PROGRESS[a.status]||15, earnings: num(a.earnings) }); break;
+    case 'set_profile': if (['name','who','goals','interests','birthday'].includes(a.field)) data.profile[a.field] = a.value; break;
+  }
+}
+
+function extractActions(raw) {
+  const m = raw.match(/```json\s*([\s\S]*?)```/i);
+  let actions = [], text = raw;
+  if (m) {
+    try { const obj = JSON.parse(m[1].trim()); if (Array.isArray(obj)) actions = obj; else actions = obj.actions || []; } catch(e) {}
+    text = raw.replace(m[0], '').trim();
+  }
+  return { text: text || 'Erledigt ✅', actions };
+}
+
+// Offline-Erkennung (ohne API-Key)
+function offlineAtlas(msg) {
+  const actions = [];
+  const amount = parseAmount(msg);
+  let text;
+  if (/(kunde|kunden|client)\s+([A-Za-zÄÖÜäöß]+)/i.test(msg)) {
+    const name = msg.match(/(?:kunde|kunden|client)\s+([A-Za-zÄÖÜäöß]+)/i)[1];
+    const status = /aktiv/i.test(msg) ? 'Aktiv' : /verhandl/i.test(msg) ? 'Verhandlung' : /abgelehnt/i.test(msg) ? 'Abgelehnt' : 'Neu';
+    actions.push({ type:'add_client', name, contact:'', status });
+    text = `Kunde „${name}" (${status}) eingetragen ✅`;
+  } else if (/website|webseite|seite/i.test(msg) && amount) {
+    const nm = msg.match(/(?:website|webseite|seite)\s+([A-Za-zÄÖÜäöß0-9\.\-]+)/i);
+    actions.push({ type:'add_website', name: nm?nm[1]:'Website', url:'', visits: amount });
+    text = `Website mit ${amount} Besuchen eingetragen ✅`;
+  } else if (amount && /(verkauf|einnahme|verdient|bekommen|€|euro)/i.test(msg)) {
+    actions.push({ type:'add_income', description: msg, amount });
+    text = `Erledigt ✅ ${money(amount)} als Einnahme gebucht. Weiter so! 🚀`;
+  } else if (amount && /(ausgabe|gekauft|bezahlt|kosten|ausgegeben)/i.test(msg)) {
+    actions.push({ type:'add_expense', description: msg, amount });
+    text = `${money(amount)} als Ausgabe gebucht ✅`;
+  } else if (/hallo|hi|hey|moin|servus/i.test(msg)) {
+    text = 'Hey Bilal! 👋 Erzähl mir, was du geschafft hast — ich trag es ein.';
+  } else {
+    text = '📝 Tipp: Für echtes KI-Verständnis trag deinen Claude-Key in den Einstellungen ein. Sonst nenn mir z.B. „150€ verdient" oder „neuer Kunde Max aktiv".';
+  }
+  return { text, actions };
+}
+
+async function callClaude() {
+  const s = data.settings;
+  const history = data.chat.slice(-16).map(m => ({ role: m.role, content: m.content }));
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': s.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: s.model || 'claude-haiku-4-5-20251001',
+      max_tokens: 700,
+      system: ATLAS_SYSTEM + '\n\n' + dataContext(),
+      messages: history
+    })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message || 'API-Fehler');
+  return (json.content || []).map(c => c.text || '').join('').trim();
+}
+
+let atlasBusy = false;
+async function sendAtlas(fromVoice) {
   const input = document.getElementById('atlasInput');
   const msg = input.value.trim();
-  if (!msg) return;
-  const box = document.getElementById('chatBox');
-  box.insertAdjacentHTML('beforeend', `<div class="chat-msg me">${esc(msg)}</div>`);
+  if (!msg || atlasBusy) return;
   input.value = '';
-  // Einfache Offline-Logik: Betrag erkennen
-  let reply;
-  const amount = parseAmount(msg);
-  if (amount && /(verkauf|einnahme|verdient|bekommen|€|euro)/i.test(msg)) {
-    data.income.push({ description: msg, amount, date: todayStr() });
-    save(); renderAnalytics(); renderFinances();
-    reply = `Erledigt ✅ Ich habe ${money(amount)} als Einnahme gebucht. Weiter so, Bilal! 🚀`;
-  } else if (/hallo|hi|hey|moin/i.test(msg)) {
-    reply = 'Hey! 👋 Erzähl mir, was du heute geschafft hast.';
-  } else {
-    reply = 'Notiert! 📝 Tipp: Wenn du einen Betrag nennst (z.B. „150€ verdient"), buche ich ihn automatisch in deine Finanzen.';
-  }
-  setTimeout(() => {
-    box.insertAdjacentHTML('beforeend', `<div class="chat-msg atlas">${esc(reply)}</div>`);
+  addChat('me', msg);
+  data.chat.push({ role: 'user', content: msg });
+
+  const hasKey = (data.settings.apiKey || '').startsWith('sk-');
+  let reply, actions = [];
+
+  if (hasKey) {
+    atlasBusy = true;
+    const box = document.getElementById('chatBox');
+    box.insertAdjacentHTML('beforeend', `<div class="chat-msg atlas typing" id="typing">Atlas denkt nach…</div>`);
     box.scrollTop = box.scrollHeight;
-  }, 350);
+    try {
+      const raw = await callClaude();
+      const parsed = extractActions(raw);
+      reply = parsed.text; actions = parsed.actions;
+    } catch (e) {
+      reply = '⚠️ Konnte die KI nicht erreichen: ' + e.message + '\n(Prüfe deinen API-Key & Internet in den Einstellungen.)';
+    }
+    const t = document.getElementById('typing'); if (t) t.remove();
+    atlasBusy = false;
+  } else {
+    const off = offlineAtlas(msg);
+    reply = off.text; actions = off.actions;
+  }
+
+  actions.forEach(executeAction);
+  if (actions.length) { refreshAll(); renderProfile(); }
+  data.chat.push({ role: 'assistant', content: reply });
+  if (data.chat.length > 40) data.chat = data.chat.slice(-40);
+  save();
+  addChat('atlas', reply);
+  if (data.settings.speakReplies && (fromVoice || liveMode)) speak(reply);
+  else if (data.settings.speakReplies && document.getElementById('atlas').classList.contains('active')) speak(reply);
+}
+
+// ---------------- Sprache: Zuhören & Vorlesen ----------------
+let recog = null, listening = false, liveMode = false;
+function speechSupported() { return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+function setMicUI(on) { const b = document.getElementById('micBtn'); if (b) b.classList.toggle('listening', on); }
+
+function startListening(auto) {
+  if (listening) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast('Spracheingabe geht nur in Chrome, Edge oder Opera');
+  recog = new SR();
+  recog.lang = 'de-DE'; recog.interimResults = false; recog.maxAlternatives = 1;
+  listening = true; setMicUI(true);
+  recog.onresult = ev => { document.getElementById('atlasInput').value = ev.results[0][0].transcript; };
+  recog.onerror = () => {};
+  recog.onend = () => {
+    listening = false; setMicUI(false);
+    const t = document.getElementById('atlasInput').value.trim();
+    if (t) sendAtlas(true);
+    else if (liveMode) { /* nichts gehört – im Live-Modus erneut zuhören */ setTimeout(() => { if (liveMode) startListening(true); }, 400); }
+  };
+  try { recog.start(); } catch(e) { listening = false; setMicUI(false); }
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) { if (liveMode) startListening(true); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text).replace(/[*_`#>\[\]]/g, ''));
+    u.lang = 'de-DE';
+    u.rate = { slow: 0.85, normal: 1, fast: 1.25 }[data.settings.speed] || 1;
+    u.volume = (data.settings.volume != null ? data.settings.volume : 75) / 100;
+    const de = speechSynthesis.getVoices().find(v => /de[-_]/i.test(v.lang));
+    if (de) u.voice = de;
+    u.onend = () => { if (liveMode) startListening(true); };
+    speechSynthesis.speak(u);
+  } catch(e) { if (liveMode) startListening(true); }
+}
+
+function toggleLive() {
+  liveMode = !liveMode;
+  const btn = document.getElementById('liveBtn');
+  btn.classList.toggle('active', liveMode);
+  btn.textContent = liveMode ? '⏹ Live-Gespräch beenden' : '🎙️ Live-Gespräch starten';
+  if (liveMode) {
+    if (!speechSupported()) { liveMode = false; btn.classList.remove('active'); btn.textContent = '🎙️ Live-Gespräch starten'; return toast('Sprache geht nur in Chrome, Edge oder Opera'); }
+    toast('Live-Gespräch an — sprich einfach! 🎙️');
+    startListening(true);
+  } else {
+    try { speechSynthesis.cancel(); if (recog) recog.stop(); } catch(e) {}
+    setMicUI(false);
+  }
+}
+
+function updateAtlasStatus() {
+  const el = document.getElementById('atlasStatus');
+  if (!el) return;
+  el.textContent = (data.settings.apiKey || '').startsWith('sk-')
+    ? 'Atlas bereit — KI verbunden 🧠'
+    : 'Atlas bereit (Offline-Modus — KI im Einstellungen-Tab aktivieren)';
+}
+
+const ATLAS_GREETING = 'Hi Bilal! 👋 Ich bin Atlas, dein Assistent. Sag oder schreib mir einfach, was du gemacht hast — z.B. „Ich habe eine Website für 300€ verkauft" oder „neuer Kunde Max, Status aktiv" — und ich trage alles für dich ein.';
+function renderChat() {
+  const box = document.getElementById('chatBox');
+  if (!box) return;
+  box.innerHTML = data.chat.length
+    ? data.chat.map(m => `<div class="chat-msg ${m.role === 'user' ? 'me' : 'atlas'}">${esc(m.content)}</div>`).join('')
+    : `<div class="chat-msg atlas">${esc(ATLAS_GREETING)}</div>`;
   box.scrollTop = box.scrollHeight;
 }
 
@@ -974,15 +1233,17 @@ function saveSettingsFromUI() {
   s.volume = parseInt(document.getElementById('setVolume').value);
   s.speed = document.getElementById('setSpeed').value;
   s.mode = document.getElementById('setMode').value;
+  s.model = document.getElementById('setModel').value;
   save();
 }
 function saveApiKey() {
   const v = document.getElementById('setApiKey').value.trim();
   data.settings.apiKey = v; save();
   const st = document.getElementById('apiStatus');
-  if (v.startsWith('sk-')) { st.textContent = '✅ Key gespeichert (lokal)'; st.style.color = 'var(--primary)'; document.getElementById('atlasStatus').textContent = 'Atlas bereit'; toast('API-Key gespeichert ✔'); }
+  if (v.startsWith('sk-')) { st.textContent = '✅ Key gespeichert (lokal)'; st.style.color = 'var(--primary)'; toast('API-Key gespeichert ✔'); }
   else if (v === '') { st.textContent = '❌ Nicht verbunden'; st.style.color = 'var(--danger)'; }
-  else { st.textContent = '⚠️ Ungültiges Format (sk-...)'; st.style.color = '#f59e0b'; }
+  else { st.textContent = '⚠️ Ungültiges Format (muss mit sk- beginnen)'; st.style.color = '#f59e0b'; }
+  updateAtlasStatus();
 }
 function renderSettings() {
   const s = data.settings;
@@ -994,10 +1255,12 @@ function renderSettings() {
   document.getElementById('volLabel').textContent = s.volume + '%';
   document.getElementById('setSpeed').value = s.speed;
   document.getElementById('setMode').value = s.mode;
+  document.getElementById('setModel').value = s.model || 'claude-haiku-4-5-20251001';
   document.getElementById('setApiKey').value = s.apiKey;
   document.getElementById('tgTracking').classList.toggle('active', s.autoTracking);
   document.getElementById('tgReports').classList.toggle('active', s.autoReports);
   document.getElementById('tgBackup').classList.toggle('active', s.autoBackup);
+  document.getElementById('tgSpeak').classList.toggle('active', s.speakReplies !== false);
   document.getElementById('customColor').value = s.primaryColor;
   document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('active', o.dataset.color === s.primaryColor));
   const st = document.getElementById('apiStatus');
@@ -1025,7 +1288,7 @@ function importData() {
         const imported = JSON.parse(r.result);
         data = Object.assign(structuredClone(DEFAULT_DATA), imported,
           { settings: Object.assign({}, DEFAULT_DATA.settings, imported.settings || {}) });
-        save(); applyTheme(); refreshAll(); renderProfile(); renderSettings();
+        save(); applyTheme(); refreshAll(); renderProfile(); renderSettings(); renderChat(); updateAtlasStatus();
         toast('Daten importiert ✔');
       } catch (err) { toast('Fehler beim Import'); }
     };
@@ -1037,7 +1300,7 @@ function clearData() {
   if (!confirm('⚠️ Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden!')) return;
   localStorage.removeItem(KEY);
   data = structuredClone(DEFAULT_DATA);
-  applyTheme(); refreshAll(); renderProfile(); renderSettings();
+  applyTheme(); refreshAll(); renderProfile(); renderSettings(); renderChat(); updateAtlasStatus();
   toast('Alle Daten gelöscht');
 }
 
@@ -1051,6 +1314,10 @@ function applyTheme() {
 }
 applyTheme();
 renderAnalytics();
+updateAtlasStatus();
+renderChat();
+// Stimmen für Sprachausgabe vorladen
+if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }
 </script>
 </body>
 </html>
