@@ -580,7 +580,7 @@
                   <option value="trebuchet">Trebuchet (weich)</option>
                   <option value="mono">Mono (technisch)</option>
                 </select></div>
-              <div class="set-row"><div class="grow"><div class="set-label">Netzwerk-Farbe</div><div class="set-desc">Leuchtfarbe im „Über mich"-Netzwerk</div></div><input type="color" id="setBrainColor" class="set-control" value="#f0972b" onchange="setBrainColor(this.value)"></div>
+              <div class="set-row"><div class="grow"><div class="set-label">Netzwerk-Farbe</div><div class="set-desc">Leuchtfarbe im „Über mich"-Netzwerk</div></div><input type="color" id="setBrainColor" class="set-control" value="#5b8cff" onchange="setBrainColor(this.value)"></div>
             </div>
 
             <div class="settings-section">
@@ -664,7 +664,7 @@ const DEFAULT_DATA = {
     { category: 'Lieblingsfarbe', value: 'Schwarz' },
     { category: 'Lieblingsfarbe', value: 'Lila' }
   ],
-  settings: { primaryColor: '#00a97b', font: 'system', brainColor: '#f0972b', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
+  settings: { primaryColor: '#00a97b', font: 'system', brainColor: '#5b8cff', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
     voice: 'male', voiceName: '', volume: 75, speed: 'normal',
     autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal',
     apiKey: '', model: 'claude-haiku-4-5-20251001', speakReplies: true }
@@ -681,6 +681,8 @@ function load() {
       { settings: Object.assign({}, DEFAULT_DATA.settings, parsed.settings || {}) });
     // Migration: altes Standard-Grün -> Shopify-Grün
     if (merged.settings.primaryColor === '#22c55e') merged.settings.primaryColor = '#00a97b';
+    // Migration: altes Netzwerk-Orange -> Galaxie-Blau
+    if (merged.settings.brainColor === '#f0972b') merged.settings.brainColor = '#5b8cff';
     return merged;
   } catch (e) { return structuredClone(DEFAULT_DATA); }
 }
@@ -965,24 +967,62 @@ function saveProfile() {
 }
 
 // ---------------- Big Brain Netzwerk (Glow / verschiebbare Map) ----------------
-let brainNodes = [], brainLinks = [], decoNodes = [], decoLinks = [];
+let brainNodes = [], brainLinks = [];
+let galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
 let brainAnim = null, brainCanvas = null, brainCtx = null, brainDrag = null;
 let panning = false, panStart = null, hoverNode = null, brainW = 0, brainH = 0, brainTime = 0;
 const cam = { x: 0, y: 0, scale: 1 };
-function brainColor() { return data.settings.brainColor || '#f0972b'; }
-function brainRgb() { const m = brainColor().replace('#','').match(/.{2}/g); return m ? m.map(x=>parseInt(x,16)) : [240,151,43]; }
+function brainColor() { return data.settings.brainColor || '#5b8cff'; }
 function W2S(x,y){ return [x*cam.scale+cam.x, y*cam.scale+cam.y]; }
 function S2W(x,y){ return [(x-cam.x)/cam.scale, (y-cam.y)/cam.scale]; }
-function buildDeco(){
-  decoNodes=[]; decoLinks=[];
-  const N=230, R=560; let seed=1337;
-  const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
-  for(let i=0;i<N;i++){ const a=rnd()*Math.PI*2, r=Math.pow(rnd(),0.62)*R;
-    decoNodes.push({ x:Math.cos(a)*r, y:Math.sin(a)*r, s:0.6+rnd()*1.9, tw:rnd()*6.28, bright:rnd()<0.16 }); }
-  for(let i=0;i<N;i++){ const d=[];
-    for(let j=0;j<N;j++){ if(i===j) continue; const dx=decoNodes[i].x-decoNodes[j].x, dy=decoNodes[i].y-decoNodes[j].y; d.push([dx*dx+dy*dy,j]); }
-    d.sort((a,b)=>a[0]-b[0]); const k=2+Math.floor(rnd()*2);
-    for(let m=0;m<k;m++){ if(d[m] && d[m][0]<150*150 && i<d[m][1]) decoLinks.push([i,d[m][1]]); } }
+
+// Prozedurale Galaxie: Cluster-Hubs mit Blättern (Obsidian-Dichte),
+// pinke "Pusteblumen", Nebel, Ringe und Kern-Strahlen (Galaxie-Look)
+function buildGalaxy(){
+  let seed = 20260718;
+  const R = () => { seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+  galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
+  for(let i=0;i<11;i++){ const a=R()*6.283, d=120+R()*780;
+    galaxy.nebulae.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, r:50+R()*115, al:0.10+R()*0.13 }); }
+  galaxy.rings = [ {rx:300,ry:112,rot:-0.35}, {rx:520,ry:198,rot:-0.35}, {rx:780,ry:305,rot:-0.35} ];
+  for(let i=0;i<46;i++){ galaxy.rays.push({ a:R()*6.283, len:90+R()*400, al:0.04+R()*0.10 }); }
+  const hubs=[];
+  for(let i=0;i<30;i++){
+    const a=R()*6.283, d=170+R()*780;
+    const h={ x:Math.cos(a)*d, y:Math.sin(a)*d, s:2.2+R()*2.6 };
+    hubs.push(h);
+    galaxy.dots.push({ x:h.x, y:h.y, s:h.s, white:true, tw:R()*6.28 });
+    const nl=9+Math.floor(R()*24), full=R()<0.5, spread=full?6.283:(0.8+R()*2.2), start=R()*6.283;
+    for(let j=0;j<nl;j++){
+      const la = full ? R()*6.283 : start+(j/nl-0.5)*spread;
+      const ld = 16+R()*62;
+      const lx = h.x+Math.cos(la)*ld, ly = h.y+Math.sin(la)*ld;
+      galaxy.dots.push({ x:lx, y:ly, s:0.7+R()*1.3, white:R()<0.25, tw:R()*6.28 });
+      galaxy.links.push({ x1:h.x, y1:h.y, x2:lx, y2:ly, al:0.11 });
+      if(R()<0.20){
+        const sa=la+(R()-0.5), sd=10+R()*28, sx=lx+Math.cos(sa)*sd, sy=ly+Math.sin(sa)*sd;
+        galaxy.dots.push({ x:sx, y:sy, s:0.6+R(), white:false, tw:R()*6.28 });
+        galaxy.links.push({ x1:lx, y1:ly, x2:sx, y2:sy, al:0.07 });
+      }
+    }
+  }
+  for(let i=0;i<hubs.length;i++){
+    const ds=[];
+    for(let j=0;j<hubs.length;j++){ if(i===j) continue;
+      const dx=hubs[i].x-hubs[j].x, dy=hubs[i].y-hubs[j].y; ds.push([dx*dx+dy*dy,j]); }
+    ds.sort((a,b)=>a[0]-b[0]);
+    for(let k=0;k<2;k++){ const j=ds[k][1];
+      if(i<j) galaxy.links.push({ x1:hubs[i].x, y1:hubs[i].y, x2:hubs[j].x, y2:hubs[j].y, al:0.06 }); }
+  }
+  for(let i=0;i<9;i++){
+    const a=R()*6.283, d=260+R()*660;
+    const b={ x:Math.cos(a)*d, y:Math.sin(a)*d, rays:[] };
+    const nr=16+Math.floor(R()*26);
+    for(let j=0;j<nr;j++) b.rays.push({ a:R()*6.283, l:26+R()*74, s:0.8+R()*1.4, tw:R()*6.28 });
+    galaxy.bursts.push(b);
+  }
+  for(let i=0;i<520;i++){ const a=R()*6.283, d=Math.pow(R(),0.7)*980;
+    galaxy.dust.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, s:0.4+R()*0.9, tw:R()*6.28 }); }
 }
 
 function buildBrain() {
@@ -998,8 +1038,11 @@ function buildBrain() {
       brainLinks.push({ s:'me', t:cid });
     }
     const nid = 'f'+idx; const p = prev[nid];
-    brainNodes.push({ id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:6,
-      x:p?p.x:(Math.random()-.5)*340, y:p?p.y:(Math.random()-.5)*340, vx:0, vy:0 });
+    const fn = { id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:6,
+      x:p?p.x:(Math.random()-.5)*340, y:p?p.y:(Math.random()-.5)*340, vx:0, vy:0, sat:[] };
+    const sn = 5+Math.floor(Math.random()*9);
+    for(let k=0;k<sn;k++) fn.sat.push({ a:Math.random()*6.2832, d:14+Math.random()*34, s:0.6+Math.random()*1.1, tw:Math.random()*6.2832 });
+    brainNodes.push(fn);
     brainLinks.push({ s:cats[f.category], t:nid });
   });
 }
@@ -1024,40 +1067,106 @@ function brainStep() {
   });
 }
 function brainRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+// Glow-Sprites (vorgerenderte Verläufe = viele Partikel ohne Ruckeln)
+const spriteCache = {};
+function hexA(hex,a){ const m=hex.replace('#','').match(/.{2}/g)||['5b','8c','ff']; const rgb=m.map(x=>parseInt(x,16)); return 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')'; }
+function glowSprite(color){
+  if(spriteCache[color]) return spriteCache[color];
+  const c=document.createElement('canvas'); c.width=c.height=64;
+  const g=c.getContext('2d'), gr=g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0,'rgba(255,255,255,0.95)');
+  gr.addColorStop(0.22,hexA(color,0.9));
+  gr.addColorStop(0.55,hexA(color,0.28));
+  gr.addColorStop(1,hexA(color,0));
+  g.fillStyle=gr; g.fillRect(0,0,64,64);
+  return spriteCache[color]=c;
+}
+function nebSprite(color){
+  const key='neb'+color; if(spriteCache[key]) return spriteCache[key];
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const g=c.getContext('2d'), gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,hexA(color,0.42)); gr.addColorStop(0.5,hexA(color,0.16)); gr.addColorStop(1,hexA(color,0));
+  g.fillStyle=gr; g.fillRect(0,0,128,128);
+  return spriteCache[key]=c;
+}
+function dot(ctx,x,y,r,color,alpha){
+  if(alpha<=0) return;
+  ctx.globalAlpha=Math.min(1,alpha);
+  const s=r*4; ctx.drawImage(glowSprite(color), x-s/2, y-s/2, s, s);
+  ctx.globalAlpha=1;
+}
+
 function brainDraw() {
   const ctx=brainCtx; if(!ctx) return;
   brainTime+=0.016;
   ctx.clearRect(0,0,brainW,brainH);
-  const rgb=brainRgb(), cc=rgb[0]+','+rgb[1]+','+rgb[2];
-  // Deko-Linien
-  ctx.lineWidth=1; ctx.strokeStyle='rgba('+cc+',0.06)';
-  decoLinks.forEach(l=>{ const a=decoNodes[l[0]], b=decoNodes[l[1]], pa=W2S(a.x,a.y), pb=W2S(b.x,b.y);
-    ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); });
-  // Deko-Partikel (leuchten & funkeln)
-  decoNodes.forEach(n=>{ const p=W2S(n.x,n.y), tw=0.5+0.5*Math.sin(brainTime*1.5+n.tw);
-    const r=Math.max(0.5,n.s*cam.scale*(n.bright?1.7:1));
-    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,6.2832);
-    ctx.fillStyle = n.bright ? 'rgba(255,240,220,'+(0.5+0.4*tw)+')' : 'rgba('+cc+','+(0.22+0.4*tw)+')';
-    ctx.shadowColor='rgba('+cc+',0.85)'; ctx.shadowBlur=n.bright?11:5; ctx.fill(); ctx.shadowBlur=0; });
-  // echte Verbindungen
+  const base=brainColor(), white='#ffffff', pink='#ff6584';
+  const rot=brainTime*0.006, csr=Math.cos(rot), snr=Math.sin(rot);
+  const RW=(x,y)=>W2S(x*csr-y*snr, x*snr+y*csr);
+  const lw=Math.max(0.4,Math.min(2,cam.scale));
+  // Nebel (weiche Wolken)
+  galaxy.nebulae.forEach(n=>{ const p=RW(n.x,n.y), r=n.r*cam.scale;
+    ctx.globalAlpha=n.al; ctx.drawImage(nebSprite(base), p[0]-r, p[1]-r, r*2, r*2); ctx.globalAlpha=1; });
+  // Orbit-Ringe
+  const c0=W2S(0,0);
+  ctx.strokeStyle=hexA(base,0.15); ctx.lineWidth=lw;
+  galaxy.rings.forEach(rg=>{ ctx.beginPath();
+    ctx.ellipse(c0[0],c0[1],rg.rx*cam.scale,rg.ry*cam.scale,rg.rot+rot*0.4,0,6.2832); ctx.stroke(); });
+  // Kern-Strahlen
+  galaxy.rays.forEach(r=>{ const a=r.a+rot;
+    const p1=W2S(Math.cos(a)*8,Math.sin(a)*8), p2=W2S(Math.cos(a)*r.len,Math.sin(a)*r.len);
+    ctx.strokeStyle='rgba(255,255,255,'+r.al+')'; ctx.beginPath();
+    ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke(); });
+  // Cluster-Verbindungen
+  ctx.lineWidth=lw*0.8;
+  galaxy.links.forEach(l=>{ const p1=RW(l.x1,l.y1), p2=RW(l.x2,l.y2);
+    ctx.strokeStyle=hexA(base,l.al); ctx.beginPath();
+    ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke(); });
+  // Sternenstaub
+  galaxy.dust.forEach((d,i)=>{ if(cam.scale<0.5 && (i&1)) return;
+    const p=RW(d.x,d.y), tw=0.5+0.5*Math.sin(brainTime*1.3+d.tw);
+    dot(ctx,p[0],p[1],Math.max(0.4,d.s*cam.scale),base,0.13+0.2*tw); });
+  // Cluster-Punkte
+  galaxy.dots.forEach(d=>{ const p=RW(d.x,d.y), tw=0.5+0.5*Math.sin(brainTime*1.6+d.tw);
+    dot(ctx,p[0],p[1],Math.max(0.5,d.s*cam.scale), d.white?white:base, (d.white?0.55:0.34)+0.3*tw); });
+  // Pusteblumen (pink)
+  galaxy.bursts.forEach(b=>{ const bp=RW(b.x,b.y);
+    ctx.lineWidth=lw*0.8;
+    b.rays.forEach(r=>{ const a=r.a+rot;
+      const pe=RW(b.x+Math.cos(a)*r.l, b.y+Math.sin(a)*r.l);
+      ctx.strokeStyle=hexA(pink,0.12); ctx.beginPath();
+      ctx.moveTo(bp[0],bp[1]); ctx.lineTo(pe[0],pe[1]); ctx.stroke();
+      const tw=0.5+0.5*Math.sin(brainTime*2+r.tw);
+      dot(ctx,pe[0],pe[1],Math.max(0.5,r.s*cam.scale),pink,0.3+0.35*tw); });
+    dot(ctx,bp[0],bp[1],Math.max(1,2*cam.scale),'#ffd3dc',0.7); });
+  // Echte Verbindungen
   const byId={}; brainNodes.forEach(n=>byId[n.id]=n);
+  ctx.lineWidth=lw;
   brainLinks.forEach(l=>{ const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
     const pa=W2S(a.x,a.y), pb=W2S(b.x,b.y), hot=hoverNode&&(hoverNode===a||hoverNode===b);
-    ctx.strokeStyle=hot?'rgba(255,235,210,0.55)':'rgba('+cc+',0.3)'; ctx.lineWidth=hot?1.7:1.1;
+    ctx.strokeStyle=hot?'rgba(255,255,255,0.7)':hexA(base,0.42);
     ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); });
-  // echte Knoten (hell leuchtend)
-  brainNodes.forEach(n=>{ const p=W2S(n.x,n.y), r=Math.max(2,n.r*cam.scale);
-    let fill, glow;
-    if(n.group==='center'){ fill='#fff6e9'; glow=24; }
-    else if(n.group==='category'){ fill='rgb('+Math.min(255,rgb[0]+55)+','+Math.min(255,rgb[1]+55)+','+Math.min(255,rgb[2]+45)+')'; glow=17; }
-    else { fill='rgb('+cc+')'; glow=12; }
-    ctx.beginPath(); ctx.arc(p[0],p[1],r,0,6.2832);
-    ctx.fillStyle=fill; ctx.shadowColor='rgba('+cc+',1)'; ctx.shadowBlur=glow*(hoverNode===n?1.7:1); ctx.fill(); ctx.shadowBlur=0; });
+  // Satelliten um echte Wissens-Knoten (kleine eigene "Pusteblume")
+  ctx.lineWidth=lw*0.7;
+  brainNodes.forEach(n=>{ if(!n.sat) return;
+    const pn=W2S(n.x,n.y);
+    n.sat.forEach(s=>{ const a=s.a+brainTime*0.12;
+      const p=W2S(n.x+Math.cos(a)*s.d, n.y+Math.sin(a)*s.d);
+      ctx.strokeStyle=hexA(base,0.10); ctx.beginPath();
+      ctx.moveTo(pn[0],pn[1]); ctx.lineTo(p[0],p[1]); ctx.stroke();
+      const tw=0.5+0.5*Math.sin(brainTime*1.8+s.tw);
+      dot(ctx,p[0],p[1],Math.max(0.5,s.s*cam.scale),base,0.3+0.3*tw); }); });
+  // Echte Knoten (hell obendrauf)
+  brainNodes.forEach(n=>{ const p=W2S(n.x,n.y), r=Math.max(2,n.r*cam.scale), hot=hoverNode===n;
+    if(n.group==='center'){ dot(ctx,p[0],p[1],r*3.2,base,0.8); dot(ctx,p[0],p[1],r*1.6,white,1); }
+    else if(n.group==='category'){ dot(ctx,p[0],p[1],r*(hot?2.2:1.7),white,0.95); }
+    else { dot(ctx,p[0],p[1],r*(hot?2.4:1.8),base,1); } });
   // Label nur beim Hover
   if(hoverNode){ const p=W2S(hoverNode.x,hoverNode.y), txt=hoverNode.label;
     ctx.font="600 13px -apple-system,'Segoe UI',sans-serif";
-    const w=ctx.measureText(txt).width, bx=p[0]-w/2-9, by=p[1]-hoverNode.r*cam.scale-32;
-    ctx.fillStyle='rgba(14,16,19,0.94)'; ctx.strokeStyle='rgba('+cc+',0.65)'; ctx.lineWidth=1;
+    const w=ctx.measureText(txt).width, bx=p[0]-w/2-9, by=p[1]-hoverNode.r*cam.scale-34;
+    ctx.fillStyle='rgba(10,12,16,0.94)'; ctx.strokeStyle=hexA(base,0.7); ctx.lineWidth=1;
     brainRoundRect(ctx,bx,by,w+18,25,7); ctx.fill(); ctx.stroke();
     ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,p[0],by+12.5); }
 }
@@ -1084,7 +1193,7 @@ function initBrainEvents(){
     else { hoverNode=brainNodeAtScreen(p[0],p[1]); brainCanvas.style.cursor=hoverNode?'grab':'default'; } });
   window.addEventListener('mouseup', ()=>{ brainDrag=null; panning=false; if(brainCanvas) brainCanvas.style.cursor=hoverNode?'grab':'default'; });
   brainCanvas.addEventListener('wheel', e=>{ e.preventDefault(); const p=brainPos(e), w=S2W(p[0],p[1]);
-    cam.scale=Math.max(0.3,Math.min(3.5, cam.scale*(e.deltaY<0?1.12:0.89)));
+    cam.scale=Math.max(0.12,Math.min(6, cam.scale*(e.deltaY<0?1.12:0.89)));
     cam.x=p[0]-w[0]*cam.scale; cam.y=p[1]-w[1]*cam.scale; }, {passive:false});
   brainCanvas.addEventListener('dblclick', e=>{ const p=brainPos(e), n=brainNodeAtScreen(p[0],p[1]);
     if(n && n.group==='fact' && confirm('Knoten „'+n.label+'" löschen?')) delFact(n.factIndex); });
@@ -1093,7 +1202,7 @@ function renderBrain(){
   brainCanvas=document.getElementById('brainCanvas'); if(!brainCanvas) return;
   brainCtx=brainCanvas.getContext('2d');
   resizeBrain(); initBrainEvents();
-  if(!decoNodes.length) buildDeco();
+  if(!galaxy.dots.length) buildGalaxy();
   buildBrain();
   if(!brainAnim) brainLoop();
 }
