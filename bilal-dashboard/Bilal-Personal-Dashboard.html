@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atlas — Bilal Dashboard</title>
+<title>Big Brain — Dashboard</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -258,8 +258,8 @@
   <!-- PIN-Sperre -->
   <div id="lockScreen" class="lock">
     <div class="lock-card" id="lockCard">
-      <div class="lock-logo">A</div>
-      <h2>Atlas Dashboard</h2>
+      <div class="lock-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 001 5 3 3 0 006 1V4a3 3 0 00-2-1zM15 3a3 3 0 013 3 3 3 0 012 5 3 3 0 01-1 5 3 3 0 01-6 1"/></svg></div>
+      <h2>Big Brain</h2>
       <p>Bitte gib deinen PIN ein</p>
       <input type="password" id="pinInput" placeholder="PIN" autocomplete="off" onkeydown="if(event.key==='Enter')tryUnlock()">
       <div class="lock-err" id="pinError">Falscher PIN — versuch es nochmal.</div>
@@ -273,7 +273,7 @@
 
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
-    <div class="brand"><span class="mark">A</span> Atlas</div>
+    <div class="brand"><span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 001 5 3 3 0 006 1V4a3 3 0 00-2-1zM15 3a3 3 0 013 3 3 3 0 012 5 3 3 0 01-1 5 3 3 0 01-6 1"/></svg></span> Big Brain</div>
     <nav id="nav">
       <div class="nav-item active" data-view="analytics">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M20 20H3"/></svg> Analytics
@@ -339,6 +339,19 @@
               <div class="metric-label">Projekte</div>
               <div class="metric-value" id="ovProjCount">0</div>
               <div class="metric-foot">gesamt</div>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-title">Netto-Umsatz über Zeit</div>
+              <div class="card-sub">Letzte 14 Tage</div>
+              <div id="salesChart"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Ø Einnahme pro Buchung</div>
+              <div class="card-sub">Letzte 14 Tage</div>
+              <div id="avgChart"></div>
             </div>
           </div>
 
@@ -418,6 +431,28 @@
         <!-- ========== ÜBER MICH ========== -->
         <section class="view" id="ueber">
           <div class="page-head"><div class="page-title">Über mich</div></div>
+
+          <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
+            <div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div class="card-title" style="margin:0;">🧠 Mein Gehirn-Netzwerk</div>
+                <div class="card-sub" style="margin:0;">Deine Interessen, Hobbys, Ziele & mehr — wächst mit jeder neuen Info</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <select id="factCat" style="width:auto;padding:8px 10px;">
+                  <option>Interessen</option><option>Hobbys</option><option>Ziele</option>
+                  <option>Lieblingsfarbe</option><option>Skills</option><option>Lieblingsessen</option><option>Sonstiges</option>
+                </select>
+                <input type="text" id="factVal" placeholder="Neue Info…" style="width:170px;" onkeydown="if(event.key==='Enter')addFactFromUI()">
+                <button class="btn btn-primary" onclick="addFactFromUI()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Knoten</button>
+              </div>
+            </div>
+            <div style="position:relative;background:#111316;border-top:1px solid var(--border);">
+              <canvas id="brainCanvas" style="display:block;width:100%;height:440px;"></canvas>
+              <div style="position:absolute;bottom:10px;left:14px;font-size:11.5px;color:var(--text-dim);">Tipp: Knoten ziehen zum Bewegen · Doppelklick auf einen Knoten zum Löschen</div>
+            </div>
+          </div>
+
           <div class="card" style="max-width:640px;">
             <div id="profileView">
               <h2 style="font-size:22px;font-weight:700;" id="pName">Bilal</h2>
@@ -488,6 +523,14 @@
           <div class="page-head"><div class="page-title">Atlas KI</div></div>
           <div class="card">
             <div class="status-line" style="margin-bottom:14px;"><span class="status-dot"></span><span id="atlasStatus">Atlas bereit</span></div>
+            <div id="atlasKeyBox" style="display:none;margin-bottom:14px;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
+              <div class="set-label" style="margin-bottom:8px;">🔑 API-Key eingeben für den echten KI-Chat:</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="password" id="atlasKeyInput" placeholder="sk-ant-…" style="flex:1;min-width:180px;" onkeydown="if(event.key==='Enter')saveKeyFromAtlas()">
+                <button class="btn btn-primary" onclick="saveKeyFromAtlas()">Speichern & aktivieren</button>
+              </div>
+              <div class="set-desc" style="margin-top:8px;">Key holen auf <b>console.anthropic.com</b>. Wird nur lokal gespeichert. Ohne Key läuft der kostenlose Offline-Modus.</div>
+            </div>
             <div class="chat-box" id="chatBox"></div>
             <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
               <input type="text" id="atlasInput" style="flex:1;min-width:180px;" placeholder="Nachricht an Atlas…" onkeydown="if(event.key==='Enter')sendAtlas()">
@@ -590,6 +633,22 @@ const DEFAULT_DATA = {
   projects: [],
   clients: [],
   chat: [],
+  brain: [
+    { category: 'Interessen', value: 'Serien' },
+    { category: 'Interessen', value: 'Anime & Manga' },
+    { category: 'Interessen', value: 'Programmieren & Technik' },
+    { category: 'Interessen', value: 'Business & Geld' },
+    { category: 'Interessen', value: 'Gaming & Power-Scaling' },
+    { category: 'Hobbys', value: 'Volleyball' },
+    { category: 'Hobbys', value: 'Gaming (Brawl Stars)' },
+    { category: 'Hobbys', value: 'Webseiten bauen' },
+    { category: 'Ziele', value: 'Sorglos Geld ausgeben können' },
+    { category: 'Ziele', value: 'Finanziell frei sein' },
+    { category: 'Ziele', value: 'Erfolgreiche App / Spiel' },
+    { category: 'Ziele', value: 'Bekannt werden' },
+    { category: 'Lieblingsfarbe', value: 'Schwarz' },
+    { category: 'Lieblingsfarbe', value: 'Lila' }
+  ],
   settings: { primaryColor: '#00a97b', font: 'system', language: 'de', currency: '€', timezone: 'Europe/Berlin (MEZ)',
     voice: 'male', volume: 75, speed: 'normal',
     autoTracking: true, autoReports: true, autoBackup: false, mode: 'normal',
@@ -645,9 +704,10 @@ function navClick(e) {
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
 function renderView(v) {
+  if (v !== 'ueber') stopBrain();
   if (v === 'analytics') renderAnalytics();
   if (v === 'finanzen') renderFinances();
-  if (v === 'ueber') renderProfile();
+  if (v === 'ueber') { renderProfile(); setTimeout(renderBrain, 30); }
   if (v === 'projekte') renderProjects();
   if (v === 'kunden') renderClients();
   if (v === 'atlas') { renderChat(); updateAtlasStatus(); }
@@ -674,7 +734,49 @@ function trendBadge(cur, prev) {
   return `<span class="trend ${up?'up':'down'}">${up?ARROW_UP:ARROW_DOWN} ${Math.abs(pct).toFixed(0)} %</span>`;
 }
 
+function dailyMap(list, days) {
+  const map = {}, order = [], today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    map[key] = { sum: 0, count: 0 }; order.push(key);
+  }
+  list.forEach(x => { if (map[x.date]) { map[x.date].sum += x.amount; map[x.date].count++; } });
+  return order.map(k => ({ label: k.slice(8) + '.' + k.slice(5,7), sum: map[k].sum, count: map[k].count }));
+}
+function lineChartSVG(series, fmt) {
+  const W=460,H=160,padL=40,padR=10,padT=12,padB=24;
+  const n=series.length, vals=series.map(s=>s.value);
+  const max=Math.max(...vals,1), ih=H-padT-padB, iw=W-padL-padR;
+  const xs=i=> padL + (n<=1? iw/2 : (i/(n-1))*iw);
+  const ys=v=> padT + ih - (v/max)*ih;
+  const pts=vals.map((v,i)=>[xs(i),ys(v)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=`${line} L ${xs(n-1).toFixed(1)} ${(padT+ih).toFixed(1)} L ${xs(0).toFixed(1)} ${(padT+ih).toFixed(1)} Z`;
+  let trend='';
+  if(n>=2){ const xm=(n-1)/2, ym=vals.reduce((a,b)=>a+b,0)/n; let num=0,den=0;
+    vals.forEach((v,i)=>{num+=(i-xm)*(v-ym);den+=(i-xm)*(i-xm);}); const sl=den?num/den:0,b=ym-sl*xm;
+    trend=`<line x1="${xs(0).toFixed(1)}" y1="${ys(b).toFixed(1)}" x2="${xs(n-1).toFixed(1)}" y2="${ys(sl*(n-1)+b).toFixed(1)}" stroke="#8a8a8a" stroke-width="1.2" stroke-dasharray="4 3"/>`; }
+  const gid='lg'+Math.random().toString(36).slice(2,7);
+  let xl=''; const step=Math.max(1,Math.ceil(n/5));
+  for(let i=0;i<n;i+=step) xl+=`<text x="${xs(i).toFixed(1)}" y="${H-7}" font-size="9" fill="var(--text-dim)" text-anchor="middle">${series[i].label}</text>`;
+  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2" fill="var(--primary)"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/></linearGradient></defs>
+    <text x="3" y="${(padT+7).toFixed(1)}" font-size="9" fill="var(--text-dim)">${fmt?fmt(max):Math.round(max)}</text>
+    <text x="3" y="${(padT+ih).toFixed(1)}" font-size="9" fill="var(--text-dim)">0</text>
+    <path d="${area}" fill="url(#${gid})"/><path d="${line}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/>
+    ${trend}${dots}${xl}</svg>`;
+}
+function renderSalesCharts() {
+  const days = dailyMap(data.income, 14);
+  const sc = document.getElementById('salesChart'), ac = document.getElementById('avgChart');
+  if (sc) sc.innerHTML = lineChartSVG(days.map(d=>({label:d.label, value:d.sum})), v=>Math.round(v)+' '+cur());
+  if (ac) ac.innerHTML = lineChartSVG(days.map(d=>({label:d.label, value:d.count?d.sum/d.count:0})), v=>Math.round(v)+' '+cur());
+}
+
 function renderAnalytics() {
+  renderSalesCharts();
   const total = data.websites.reduce((s,w) => s + (w.visits||0), 0);
   const prevTotal = data.websites.reduce((s,w) => s + (w.prevVisits||0), 0);
   document.getElementById('visitsTotal').textContent = total.toLocaleString('de-DE');
@@ -844,8 +946,120 @@ function saveProfile() {
     goals: document.getElementById('eGoals').value.trim(),
     interests: document.getElementById('eInterests').value.trim()
   };
-  save(); renderProfile(); renderAnalytics(); toast('Profil gespeichert ✔');
+  save(); renderProfile(); renderAnalytics(); if (brainCanvas) buildBrain(); toast('Profil gespeichert ✔');
 }
+
+// ---------------- Big Brain Netzwerk (Obsidian-Stil) ----------------
+const BRAIN_COLORS = {
+  'Interessen': '#00c088', 'Hobbys': '#3b82f6', 'Ziele': '#a855f7',
+  'Lieblingsfarbe': '#f59e0b', 'Skills': '#06b6d4', 'Lieblingsessen': '#ec4899', 'Sonstiges': '#8a8a8a'
+};
+function catColor(cat) { return BRAIN_COLORS[cat] || '#8a8a8a'; }
+
+let brainNodes = [], brainLinks = [], brainAnim = null, brainCanvas = null, brainCtx = null, brainDrag = null, brainW = 0, brainH = 0;
+
+function buildBrain() {
+  const prev = {}; brainNodes.forEach(n => prev[n.id] = { x:n.x, y:n.y });
+  const cx = brainW/2 || 300, cy = brainH/2 || 220;
+  brainNodes = []; brainLinks = [];
+  brainNodes.push({ id:'me', label:(data.profile.name||'Ich'), group:'center', r:20,
+    x:cx, y:cy, vx:0, vy:0, fixed:true });
+  const cats = {};
+  data.brain.forEach((f, idx) => {
+    if (!cats[f.category]) {
+      const cid = 'cat:'+f.category; cats[f.category] = cid;
+      const p = prev[cid];
+      brainNodes.push({ id:cid, label:f.category, group:'category', cat:f.category, r:11,
+        x:p?p.x:cx+(Math.random()-.5)*180, y:p?p.y:cy+(Math.random()-.5)*180, vx:0, vy:0 });
+      brainLinks.push({ s:'me', t:cid });
+    }
+    const nid = 'f'+idx; const p = prev[nid];
+    brainNodes.push({ id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:7,
+      x:p?p.x:cx+(Math.random()-.5)*320, y:p?p.y:cy+(Math.random()-.5)*320, vx:0, vy:0 });
+    brainLinks.push({ s:cats[f.category], t:nid });
+  });
+}
+function brainStep() {
+  const cx = brainW/2, cy = brainH/2, byId = {};
+  brainNodes.forEach(n => byId[n.id]=n);
+  for (let i=0;i<brainNodes.length;i++){
+    const a=brainNodes[i];
+    for (let j=i+1;j<brainNodes.length;j++){
+      const b=brainNodes[j];
+      let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+      if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); }
+      const d=Math.sqrt(d2), f=2400/d2, fx=(dx/d)*f, fy=(dy/d)*f;
+      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+    }
+  }
+  brainLinks.forEach(l=>{
+    const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
+    const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
+    const target=(b.group==='fact')?66:112, f=(d-target)*0.02, fx=(dx/d)*f, fy=(dy/d)*f;
+    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+  });
+  brainNodes.forEach(n=>{
+    if(n.fixed){ n.x=cx; n.y=cy; n.vx=0; n.vy=0; return; }
+    if(n===brainDrag){ n.vx=0; n.vy=0; return; }
+    n.vx += (cx-n.x)*0.0022; n.vy += (cy-n.y)*0.0022;
+    n.vx*=0.85; n.vy*=0.85;
+    n.x += Math.max(-18,Math.min(18,n.vx)); n.y += Math.max(-18,Math.min(18,n.vy));
+    n.x = Math.max(n.r+2, Math.min(brainW-n.r-2, n.x));
+    n.y = Math.max(n.r+2, Math.min(brainH-n.r-2, n.y));
+  });
+}
+function brainDraw() {
+  const ctx=brainCtx; if(!ctx) return;
+  ctx.clearRect(0,0,brainW,brainH);
+  const byId={}; brainNodes.forEach(n=>byId[n.id]=n);
+  ctx.lineWidth=1;
+  brainLinks.forEach(l=>{ const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
+    ctx.strokeStyle='rgba(255,255,255,0.11)'; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); });
+  brainNodes.forEach(n=>{
+    const col = n.group==='center' ? '#ffffff' : n.group==='category' ? '#c9cdd2' : catColor(n.cat);
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=(n.group==='fact')?7:13; ctx.fill(); ctx.shadowBlur=0;
+    ctx.fillStyle = n.group==='fact' ? 'rgba(230,232,234,0.82)' : '#ffffff';
+    ctx.font = (n.group==='center'?'600 13px':(n.group==='category'?'600 12px':'11px'))+" -apple-system, 'Segoe UI', sans-serif";
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText(n.label, n.x, n.y+n.r+3);
+  });
+}
+function brainLoop(){ brainStep(); brainDraw(); brainAnim=requestAnimationFrame(brainLoop); }
+function stopBrain(){ if(brainAnim){ cancelAnimationFrame(brainAnim); brainAnim=null; } }
+function resizeBrain(){
+  if(!brainCanvas) return;
+  const rect=brainCanvas.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  brainW=rect.width; brainH=rect.height;
+  brainCanvas.width=Math.round(brainW*dpr); brainCanvas.height=Math.round(brainH*dpr);
+  brainCtx.setTransform(dpr,0,0,dpr,0,0);
+}
+function brainMouse(e){ const r=brainCanvas.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+function brainNodeAt(x,y){ for(let i=brainNodes.length-1;i>=0;i--){ const n=brainNodes[i], dx=x-n.x, dy=y-n.y; if(dx*dx+dy*dy<=(n.r+5)*(n.r+5)) return n; } return null; }
+function initBrainEvents(){
+  if(brainCanvas._bound) return; brainCanvas._bound=true;
+  brainCanvas.addEventListener('mousedown', e=>{ const m=brainMouse(e), n=brainNodeAt(m.x,m.y); if(n && !n.fixed) brainDrag=n; });
+  window.addEventListener('mousemove', e=>{ if(brainDrag){ const m=brainMouse(e); brainDrag.x=m.x; brainDrag.y=m.y; } });
+  window.addEventListener('mouseup', ()=>{ brainDrag=null; });
+  brainCanvas.addEventListener('dblclick', e=>{ const m=brainMouse(e), n=brainNodeAt(m.x,m.y);
+    if(n && n.group==='fact' && confirm('Knoten „'+n.label+'" löschen?')) delFact(n.factIndex); });
+}
+function renderBrain(){
+  brainCanvas=document.getElementById('brainCanvas'); if(!brainCanvas) return;
+  brainCtx=brainCanvas.getContext('2d');
+  resizeBrain(); initBrainEvents(); buildBrain();
+  if(!brainAnim) brainLoop();
+}
+function addFactFromUI(){
+  const cat=document.getElementById('factCat').value;
+  const val=document.getElementById('factVal').value.trim();
+  if(!val) return toast('Bitte eine Info eingeben');
+  data.brain.push({ category:cat, value:val });
+  save(); document.getElementById('factVal').value=''; buildBrain(); toast('Zum Netzwerk hinzugefügt ✔');
+}
+function delFact(idx){ data.brain.splice(idx,1); save(); buildBrain(); }
+window.addEventListener('resize', () => { if(brainAnim) resizeBrain(); });
 
 // ---------------- Projekte ----------------
 const STATUS_BADGE = { 'Planung':'badge-blue', 'In Arbeit':'warn', 'Fast fertig':'badge-green', 'Abgeschlossen':'badge-green' };
@@ -926,6 +1140,8 @@ Erlaubte Aktionen:
 - add_client {name, contact, status}  (status: Neu | Verhandlung | Aktiv | Abgelehnt)
 - add_project {name, status, earnings}  (status: Planung | In Arbeit | Fast fertig | Abgeschlossen)
 - set_profile {field, value}  (field: name | who | goals | interests | birthday)
+- add_brain {category, value}  (persönliche Info fürs "Über mich"-Netzwerk; category z.B. Interessen | Hobbys | Ziele | Lieblingsfarbe | Skills | Lieblingsessen | Sonstiges)
+Wenn Bilal etwas Persönliches über sich erzählt (Lieblingsfarbe, Hobby, Interesse, Ziel), nutze add_brain.
 Wenn keine Speicher-Aktion nötig ist, lass den JSON-Block komplett weg.`;
 
 function dataContext() {
@@ -958,6 +1174,7 @@ function executeAction(a) {
     case 'add_client': data.clients.push({ name: a.name||'Kunde', contact: a.contact||'', status: a.status||'Neu' }); break;
     case 'add_project': data.projects.push({ name: a.name||'Projekt', status: a.status||'Planung', progress: STATUS_PROGRESS[a.status]||15, earnings: num(a.earnings) }); break;
     case 'set_profile': if (['name','who','goals','interests','birthday'].includes(a.field)) data.profile[a.field] = a.value; break;
+    case 'add_brain': if (a.value) data.brain.push({ category: a.category || 'Sonstiges', value: a.value }); break;
   }
 }
 
@@ -990,6 +1207,16 @@ function offlineAtlas(msg) {
   } else if (amount && /(ausgabe|gekauft|bezahlt|kosten|ausgegeben)/i.test(msg)) {
     actions.push({ type:'add_expense', description: msg, amount });
     text = `${money(amount)} als Ausgabe gebucht ✅`;
+  } else if (/lieblingsfarbe/i.test(msg)) {
+    const m = msg.match(/lieblingsfarbe\s*(?:ist|:)?\s*([A-Za-zÄÖÜäöüß\-]+)/i);
+    if (m) { actions.push({ type:'add_brain', category:'Lieblingsfarbe', value: m[1] }); text = 'Lieblingsfarbe „'+m[1]+'" ins Netzwerk aufgenommen ✅'; }
+    else text = 'Welche Farbe magst du am liebsten?';
+  } else if (/(mein|meine)\s+hobby/i.test(msg)) {
+    const m = msg.match(/hobby\s*(?:ist|:)?\s*(.+)/i);
+    if (m) { actions.push({ type:'add_brain', category:'Hobbys', value: m[1].trim() }); text = 'Hobby „'+m[1].trim()+'" hinzugefügt ✅'; } else text = 'Welches Hobby denn?';
+  } else if (/interessiere mich für|mein interesse/i.test(msg)) {
+    const m = msg.match(/(?:für|interesse\s*(?:ist|:)?)\s*(.+)/i);
+    if (m) { actions.push({ type:'add_brain', category:'Interessen', value: m[1].trim() }); text = 'Interesse „'+m[1].trim()+'" hinzugefügt ✅'; } else text = 'Wofür interessierst du dich?';
   } else if (/hallo|hi|hey|moin|servus/i.test(msg)) {
     text = 'Hey Bilal! Erzähl mir, was du geschafft hast — ich trag es ein.';
   } else {
@@ -1053,7 +1280,7 @@ async function sendAtlas(fromVoice) {
   }
 
   actions.forEach(executeAction);
-  if (actions.length) { refreshAll(); renderProfile(); }
+  if (actions.length) { refreshAll(); renderProfile(); if (brainCanvas) buildBrain(); }
   data.chat.push({ role: 'assistant', content: reply });
   if (data.chat.length > 40) data.chat = data.chat.slice(-40);
   save();
@@ -1132,9 +1359,19 @@ function toggleLive() {
 function updateAtlasStatus() {
   const el = document.getElementById('atlasStatus');
   if (!el) return;
-  el.textContent = (data.settings.apiKey || '').startsWith('sk-')
-    ? 'Atlas bereit — KI verbunden'
-    : 'Atlas bereit (Offline-Modus — KI im Einstellungen-Tab aktivieren)';
+  const hasKey = (data.settings.apiKey || '').startsWith('sk-');
+  el.textContent = hasKey ? 'Atlas bereit — KI verbunden 🧠' : 'Atlas bereit (kostenloser Offline-Modus)';
+  const box = document.getElementById('atlasKeyBox');
+  if (box) box.style.display = hasKey ? 'none' : 'block';
+}
+function saveKeyFromAtlas() {
+  const el = document.getElementById('atlasKeyInput');
+  const v = el.value.trim();
+  data.settings.apiKey = v; save();
+  el.value = '';
+  updateAtlasStatus();
+  const setInp = document.getElementById('setApiKey'); if (setInp) setInp.value = v;
+  toast(v.startsWith('sk-') ? 'API-Key aktiviert ✔' : 'Bitte gültigen Key (sk-…) eingeben');
 }
 
 const ATLAS_GREETING = 'Hi Bilal! Ich bin Atlas, dein Assistent. Sag oder schreib mir einfach, was du gemacht hast — z.B. „Ich habe eine Website für 300€ verkauft" oder „neuer Kunde Max, Status aktiv" — und ich trage alles für dich ein.';
