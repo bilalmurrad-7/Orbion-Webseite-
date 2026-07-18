@@ -244,6 +244,14 @@
   .lock-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--text-dim); margin-top: 16px; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
 
+  /* Gehirn-Netzwerk Stage + Vollbild */
+  #brainStage { position: relative; background: radial-gradient(circle at 50% 45%, #16191e 0%, #0e1013 70%); border-top: 1px solid var(--border); }
+  #brainStage.fs { position: fixed; inset: 0; z-index: 200; border: none; border-radius: 0; }
+  #brainStage.fs #brainCanvas { height: 100vh !important; }
+  #brainClose { display: none; }
+  #brainStage.fs #brainClose { display: inline-flex; position: fixed; top: 16px; right: 16px; z-index: 201; }
+  #brainStage.fs .brain-tip { bottom: 16px; }
+
   .view { display: none; }
   .view.active { display: block; }
 
@@ -443,13 +451,15 @@
                   <option>Interessen</option><option>Hobbys</option><option>Ziele</option>
                   <option>Lieblingsfarbe</option><option>Skills</option><option>Lieblingsessen</option><option>Sonstiges</option>
                 </select>
-                <input type="text" id="factVal" placeholder="Neue Info…" style="width:170px;" onkeydown="if(event.key==='Enter')addFactFromUI()">
+                <input type="text" id="factVal" placeholder="Neue Info…" style="width:150px;" onkeydown="if(event.key==='Enter')addFactFromUI()">
                 <button class="btn btn-primary" onclick="addFactFromUI()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Knoten</button>
+                <button class="btn btn-secondary" onclick="toggleBrainFullscreen()" title="Vollbild"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg> Vollbild</button>
               </div>
             </div>
-            <div style="position:relative;background:#111316;border-top:1px solid var(--border);">
-              <canvas id="brainCanvas" style="display:block;width:100%;height:440px;"></canvas>
-              <div style="position:absolute;bottom:10px;left:14px;font-size:11.5px;color:var(--text-dim);">Tipp: Knoten ziehen zum Bewegen · Doppelklick auf einen Knoten zum Löschen</div>
+            <div id="brainStage">
+              <canvas id="brainCanvas" style="display:block;width:100%;height:480px;"></canvas>
+              <button id="brainClose" class="btn btn-secondary" onclick="toggleBrainFullscreen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg> Schließen</button>
+              <div class="brain-tip" style="position:absolute;bottom:10px;left:14px;font-size:11.5px;color:var(--text-dim);">Tipp: Knoten ziehen zum Bewegen · Doppelklick zum Löschen · „Vollbild" für den Obsidian-Modus</div>
             </div>
           </div>
 
@@ -523,13 +533,16 @@
           <div class="page-head"><div class="page-title">Atlas KI</div></div>
           <div class="card">
             <div class="status-line" style="margin-bottom:14px;"><span class="status-dot"></span><span id="atlasStatus">Atlas bereit</span></div>
-            <div id="atlasKeyBox" style="display:none;margin-bottom:14px;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
-              <div class="set-label" style="margin-bottom:8px;">🔑 API-Key eingeben für den echten KI-Chat:</div>
+            <div id="atlasKeyBox" style="margin-bottom:14px;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                <div class="set-label">🔑 Claude API-Key</div>
+                <span id="atlasKeyState" class="set-desc"></span>
+              </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <input type="password" id="atlasKeyInput" placeholder="sk-ant-…" style="flex:1;min-width:180px;" onkeydown="if(event.key==='Enter')saveKeyFromAtlas()">
-                <button class="btn btn-primary" onclick="saveKeyFromAtlas()">Speichern & aktivieren</button>
+                <button class="btn btn-primary" onclick="saveKeyFromAtlas()">Speichern</button>
               </div>
-              <div class="set-desc" style="margin-top:8px;">Key holen auf <b>console.anthropic.com</b>. Wird nur lokal gespeichert. Ohne Key läuft der kostenlose Offline-Modus.</div>
+              <div class="set-desc" style="margin-top:8px;line-height:1.5;">Hol dir einen echten Key auf <b>console.anthropic.com</b> → „API Keys" (beginnt mit <b>sk-ant-</b>). Wird nur lokal auf deinem PC gespeichert. Ohne gültigen Key läuft der kostenlose Offline-Modus.</div>
             </div>
             <div class="chat-box" id="chatBox"></div>
             <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
@@ -1059,7 +1072,14 @@ function addFactFromUI(){
   save(); document.getElementById('factVal').value=''; buildBrain(); toast('Zum Netzwerk hinzugefügt ✔');
 }
 function delFact(idx){ data.brain.splice(idx,1); save(); buildBrain(); }
+function toggleBrainFullscreen(){
+  const st=document.getElementById('brainStage'); if(!st) return;
+  st.classList.toggle('fs');
+  if(!brainAnim) renderBrain();
+  setTimeout(()=>{ resizeBrain(); buildBrain(); }, 60);
+}
 window.addEventListener('resize', () => { if(brainAnim) resizeBrain(); });
+window.addEventListener('keydown', (e) => { if(e.key==='Escape'){ const st=document.getElementById('brainStage'); if(st && st.classList.contains('fs')){ st.classList.remove('fs'); setTimeout(()=>{ resizeBrain(); buildBrain(); }, 60); } } });
 
 // ---------------- Projekte ----------------
 const STATUS_BADGE = { 'Planung':'badge-blue', 'In Arbeit':'warn', 'Fast fertig':'badge-green', 'Abgeschlossen':'badge-green' };
@@ -1270,7 +1290,9 @@ async function sendAtlas(fromVoice) {
       const parsed = extractActions(raw);
       reply = parsed.text; actions = parsed.actions;
     } catch (e) {
-      reply = '⚠️ Konnte die KI nicht erreichen: ' + e.message + ' (Prüfe deinen API-Key & Internet in den Einstellungen.)';
+      reply = '⚠️ Konnte die KI nicht erreichen: ' + e.message + ' (Prüfe deinen API-Key oben & dein Internet.)';
+      const st = document.getElementById('atlasKeyState');
+      if (st && /invalid|api.?key|authenticat|401|permission/i.test(e.message)) { st.textContent = '✗ Key ungültig — bitte korrigieren'; st.style.color = 'var(--danger)'; }
     }
     const t = document.getElementById('typing'); if (t) t.remove();
     atlasBusy = false;
@@ -1332,7 +1354,7 @@ function speak(text) {
     const u = new SpeechSynthesisUtterance(String(text).replace(/[*_`#>\[\]✅⚠️🚀]/g, ''));
     u.lang = 'de-DE';
     u.rate = { slow: 0.85, normal: 1, fast: 1.25 }[data.settings.speed] || 1;
-    u.pitch = { male: 0.8, female: 1.3, robot: 0.5, neutral: 1 }[data.settings.voice] || 1;
+    u.pitch = { male: 0.7, female: 1.3, robot: 0.4, neutral: 1 }[data.settings.voice] || 1;
     u.volume = (data.settings.volume != null ? data.settings.volume : 75) / 100;
     const v = pickVoice(); if (v) u.voice = v;
     u.onend = () => { if (liveMode) startListening(true); };
@@ -1359,10 +1381,17 @@ function toggleLive() {
 function updateAtlasStatus() {
   const el = document.getElementById('atlasStatus');
   if (!el) return;
-  const hasKey = (data.settings.apiKey || '').startsWith('sk-');
-  el.textContent = hasKey ? 'Atlas bereit — KI verbunden 🧠' : 'Atlas bereit (kostenloser Offline-Modus)';
-  const box = document.getElementById('atlasKeyBox');
-  if (box) box.style.display = hasKey ? 'none' : 'block';
+  const key = data.settings.apiKey || '';
+  const hasKey = key.startsWith('sk-');
+  el.textContent = hasKey ? 'Atlas bereit — KI verbunden' : 'Atlas bereit (kostenloser Offline-Modus)';
+  const inp = document.getElementById('atlasKeyInput');
+  if (inp && document.activeElement !== inp) inp.value = key;
+  const st = document.getElementById('atlasKeyState');
+  if (st) {
+    if (!key) { st.textContent = 'Kein Key · Offline-Modus'; st.style.color = 'var(--text-dim)'; }
+    else if (hasKey) { st.textContent = '✓ Key gespeichert'; st.style.color = 'var(--primary)'; }
+    else { st.textContent = 'Ungültiges Format (sk-…)'; st.style.color = 'var(--warn-text)'; }
+  }
 }
 function saveKeyFromAtlas() {
   const el = document.getElementById('atlasKeyInput');
