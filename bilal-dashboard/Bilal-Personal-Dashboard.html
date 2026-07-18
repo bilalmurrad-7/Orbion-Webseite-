@@ -835,7 +835,7 @@ function renderAnalytics() {
         <td><div class="cell-title">${esc(w.name)}</div><div class="cell-sub">${esc(w.url)||'—'}</div></td>
         <td>${trendBadge(w.visits||0, w.prevVisits||0)}</td>
         <td class="num" style="font-weight:600;">${w.visits}</td>
-        <td class="right"><button class="del-btn" style="color:var(--primary)" onclick="updateVisitsByName('${w.name}')">Besuche ⟳</button><button class="del-btn" onclick="delWebsite(${i})">Löschen</button></td>
+        <td class="right"><button class="del-btn" style="color:var(--primary)" title="Manuell aktualisieren" onclick="updateVisitsByName('${w.name}')">Besuche ⟳</button><button class="del-btn" style="color:var(--accent)" title="Tracking-Code für Auto-Zähler" onclick="getTrackingCode('${w.name}')">Code</button><button class="del-btn" onclick="delWebsite(${i})">Löschen</button></td>
       </tr>`).join('')
     : '<tr><td colspan="4"><div class="empty-hint" style="padding:8px 0;">Keine Websites hinzugefügt</div></td></tr>';
 }
@@ -879,6 +879,28 @@ function updateVisitsByName(name) {
   toast('Besuche aktualisiert ✔');
 }
 function delWebsite(i) { data.websites.splice(i,1); save(); renderAnalytics(); }
+
+function addAutoVisits(websiteName, amount) {
+  const w = data.websites.find(x => x.name === websiteName);
+  if (!w) return false;
+  w.prevVisits = w.visits || 0;
+  w.visits = (w.visits || 0) + (amount || 1);
+  w.date = todayStr();
+  save(); renderAnalytics();
+  return true;
+}
+
+function getTrackingCode(websiteName) {
+  const code = `<!-- Tracking für Big Brain Dashboard -->
+<img src="https://bilalmurrad-7.github.io/orbion-api/?track=${encodeURIComponent(websiteName)}" style="display:none;" alt="">`;
+  const blob = new Blob([code], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tracking.html';
+  a.click();
+  toast('Tracking-Code kopiert. Einfach in jede Seite einbauen!');
+}
 
 function parseAmount(text) { const m = String(text).replace(',', '.').match(/(\d+(\.\d+)?)/); return m ? parseFloat(m[1]) : null; }
 function runQuickAdd() {
@@ -1627,11 +1649,19 @@ function pickVoice() {
   const pool = de.length ? de : voices;
   if (!pool.length) return null;
   const pref = data.settings.voice;
-  const male = /(male|männ|stefan|conrad|hans|markus|klaus|bernd|viktor|daniel|florian|yannick)/i;
-  const female = /(female|weib|katja|hedda|marlene|petra|anna|vicki)/i;
+  const male = /(male|mann|männ|stefan|hans|markus|klaus|bernd|viktor|daniel|florian|yannick|german male|deutch male)/i;
+  const female = /(female|frau|weib|katja|hedda|marlene|petra|anna|vicki|german female|deutch female)/i;
+  const robot = /(google|robot|neural|synthesized|computer)/i;
   let v;
-  if (pref === 'male') v = pool.find(x => male.test(x.name));
-  else if (pref === 'female') v = pool.find(x => female.test(x.name));
+  if (pref === 'male') {
+    v = pool.find(x => male.test(x.name) && !x.name.includes('female'));
+    if (!v) v = pool.find(x => x.name.includes('Google') && !x.name.includes('female'));
+  } else if (pref === 'female') {
+    v = pool.find(x => female.test(x.name));
+    if (!v) v = pool.find(x => x.name.includes('Google') && !x.name.includes('male'));
+  } else if (pref === 'robot') {
+    v = pool.find(x => robot.test(x.name));
+  }
   return v || pool[0];
 }
 
@@ -1642,7 +1672,7 @@ function speak(text) {
     const u = new SpeechSynthesisUtterance(String(text).replace(/[*_`#>\[\]✅⚠️🚀]/g, ''));
     u.lang = 'de-DE';
     u.rate = { slow: 0.85, normal: 1, fast: 1.25 }[data.settings.speed] || 1;
-    u.pitch = { male: 0.6, female: 1.3, robot: 0.4, neutral: 1 }[data.settings.voice] || 1;
+    u.pitch = { male: 0.5, female: 1.4, robot: 0.3, neutral: 1 }[data.settings.voice] || 1;
     u.volume = (data.settings.volume != null ? data.settings.volume : 75) / 100;
     const v = pickVoice(); if (v) u.voice = v;
     u.onend = () => { if (liveMode) startListening(true); };
