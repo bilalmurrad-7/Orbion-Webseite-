@@ -1331,7 +1331,7 @@ function addFactFromUI(){
   const val=document.getElementById('factVal').value.trim();
   if(!val) return toast('Bitte eine Info eingeben');
   data.brain.push({ category:cat, value:val });
-  save(); document.getElementById('factVal').value=''; toast('Zum Netzwerk hinzugefügt ✔');
+  save(); document.getElementById('factVal').value=''; buildNeuralNetwork(); toast('Zum Netzwerk hinzugefügt ✔');
 }
 function delFact(idx){ data.brain.splice(idx,1); save(); }
 function toggleBrainFullscreen(){
