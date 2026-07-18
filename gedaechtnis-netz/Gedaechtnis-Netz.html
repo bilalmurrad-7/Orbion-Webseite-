@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gedächtnis-Netz — Ideen-Mindmap</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --primary: #22c55e; --primary-light: #4ade80; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f0f14 0%, #16182a 100%);
+    color: #e6f9ee;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Kopfzeile */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 18px;
+    background: linear-gradient(to right, var(--primary-light), var(--primary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+  }
+  header .spacer { flex: 1; }
+
+  /* Werkzeugleiste */
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #e6f9ee;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--primary), #16a34a);
+    border-color: rgba(34,197,94,0.4);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(34,197,94,0.25);
+  }
+  .btn.primary:hover { box-shadow: 0 6px 20px rgba(34,197,94,0.4); }
+  .btn.active {
+    background: linear-gradient(135deg, var(--primary), #16a34a);
+    border-color: var(--primary-light);
+    color: #fff;
+    box-shadow: 0 0 0 2px rgba(34,197,94,0.3);
+  }
+
+  /* Farbfelder */
+  .swatches { display: inline-flex; gap: 5px; align-items: center; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 6px; cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.25); transition: transform 0.12s;
+  }
+  .swatch:hover { transform: scale(1.15); }
+
+  /* Netz-Fläche */
+  #net { flex: 1; width: 100%; }
+
+  /* Hinweisleiste */
+  .hint {
+    padding: 9px 20px;
+    font-size: 13px;
+    color: #9fb3ab;
+    background: rgba(0,0,0,0.25);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hint b { color: var(--primary-light); }
+
+  /* Fehler-Overlay wenn Bibliothek fehlt */
+  #missing {
+    position: fixed; inset: 0; z-index: 999;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10,10,16,0.96); padding: 24px;
+  }
+  #missing .box {
+    max-width: 520px; text-align: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(239,68,68,0.4);
+    border-radius: 16px; padding: 32px;
+  }
+  #missing h2 { color: #f87171; margin-bottom: 12px; }
+  #missing p { color: #cbd5d0; line-height: 1.6; margin-bottom: 10px; }
+  #missing code {
+    background: rgba(255,255,255,0.1); padding: 2px 8px;
+    border-radius: 6px; color: var(--primary-light); font-size: 14px;
+  }
+
+  .vis-tooltip {
+    background: #1a1c2e !important; color: #e6f9ee !important;
+    border: 1px solid var(--primary) !important; border-radius: 8px !important;
+    padding: 6px 10px !important; font-family: inherit !important;
+  }
+
+  input[type=file] { display: none; }
+
+  @media (max-width: 720px) {
+    header h1 { width: 100%; }
+    .btn { padding: 7px 10px; font-size: 12px; }
+  }
+</style>
+<!-- Lokale Bibliothek aus demselben Ordner laden -->
+<script src="vis-network.min.js" onerror="window.__visFailed=true"></script>
+</head>
+<body>
+
+<header>
+  <h1>🧠 Gedächtnis-Netz</h1>
+  <div class="toolbar">
+    <button class="btn primary" id="btnAdd">➕ Neue Idee</button>
+    <button class="btn" id="btnConnect">🔗 Verbinden</button>
+    <button class="btn" id="btnRename">✏️ Umbenennen</button>
+    <button class="btn" id="btnDelete">🗑️ Löschen</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="swatches" title="Farbe für ausgewählten Knoten">
+    <span class="swatch" style="background:#22c55e" data-bg="rgba(34,197,94,0.18)" data-border="#22c55e"></span>
+    <span class="swatch" style="background:#3b82f6" data-bg="rgba(59,130,246,0.18)" data-border="#3b82f6"></span>
+    <span class="swatch" style="background:#a855f7" data-bg="rgba(168,85,247,0.18)" data-border="#a855f7"></span>
+    <span class="swatch" style="background:#f59e0b" data-bg="rgba(245,158,11,0.18)" data-border="#f59e0b"></span>
+    <span class="swatch" style="background:#ef4444" data-bg="rgba(239,68,68,0.18)" data-border="#ef4444"></span>
+  </div>
+  <div class="toolbar">
+    <button class="btn" id="btnPhysics">⚛️ Physik: An</button>
+    <button class="btn" id="btnFit">🎯 Zentrieren</button>
+    <button class="btn" id="btnExport">💾 Export</button>
+    <button class="btn" id="btnImport">📂 Import</button>
+    <button class="btn" id="btnReset">🔄 Neu</button>
+    <input type="file" id="fileImport" accept="application/json,.json">
+  </div>
+</header>
+
+<div id="net"></div>
+
+<div class="hint" id="hint"></div>
+
+<div id="missing">
+  <div class="box">
+    <h2>⚠️ vis-network.min.js nicht gefunden</h2>
+    <p>Diese HTML-Datei muss im <b>selben Ordner</b> liegen wie deine
+       <code>vis-network.min.js</code>.</p>
+    <p>Lege beide Dateien zusammen in den Ordner <code>Gedaechtnis-Netz</code> und
+       öffne dann <b>diese HTML-Datei</b> per Doppelklick — nicht die .js-Datei.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- Prüfen ob die Bibliothek geladen wurde ---
+  if (window.__visFailed || typeof vis === "undefined" || !vis.Network || !vis.DataSet) {
+    document.getElementById("missing").style.display = "flex";
+    return;
+  }
+
+  var KEY = "gedaechtnisNetz_v1";
+  var COLORS = { green:"#22c55e" };
+
+  var nodes = new vis.DataSet();
+  var edges = new vis.DataSet();
+  var nextId = 1;
+  var physicsOn = true;
+
+  var options = {
+    nodes: {
+      shape: "box",
+      borderWidth: 2,
+      color: {
+        background: "rgba(34,197,94,0.18)",
+        border: "#22c55e",
+        highlight: { background: "rgba(34,197,94,0.35)", border: "#4ade80" },
+        hover: { background: "rgba(34,197,94,0.28)", border: "#4ade80" }
+      },
+      font: { color: "#e6f9ee", size: 16, face: "Segoe UI" },
+      margin: 12,
+      shadow: { enabled: true, color: "rgba(0,0,0,0.4)", size: 10, x: 0, y: 4 },
+      widthConstraint: { maximum: 190 }
+    },
+    edges: {
+      color: { color: "rgba(148,163,184,0.5)", highlight: "#22c55e", hover: "#4ade80" },
+      width: 2,
+      smooth: { enabled: true, type: "continuous" }
+    },
+    physics: {
+      enabled: true,
+      barnesHut: { gravitationalConstant: -3200, springLength: 150, springConstant: 0.04, damping: 0.2 },
+      stabilization: { iterations: 160 }
+    },
+    interaction: { hover: true, multiselect: true, tooltipDelay: 200, navigationButtons: false }
+  };
+
+  var container = document.getElementById("net");
+  var network = new vis.Network(container, { nodes: nodes, edges: edges }, options);
+
+  // ---------- Speichern / Laden ----------
+  function save() {
+    try {
+      var pos = network.getPositions();
+      var nodeArr = nodes.get().map(function (n) {
+        var p = pos[n.id];
+        if (p) { n.x = p.x; n.y = p.y; }
+        return n;
+      });
+      localStorage.setItem(KEY, JSON.stringify({
+        nodes: nodeArr, edges: edges.get(), nextId: nextId, physics: physicsOn
+      }));
+    } catch (e) { /* Speicher voll o.ä. — ignorieren */ }
+  }
+
+  function load() {
+    var raw = localStorage.getItem(KEY);
+    if (!raw) { seed(); return; }
+    try {
+      var d = JSON.parse(raw);
+      nodes.add(d.nodes || []);
+      edges.add(d.edges || []);
+      nextId = d.nextId || (d.nodes ? d.nodes.length + 1 : 1);
+      physicsOn = d.physics !== false;
+    } catch (e) { seed(); }
+  }
+
+  function seed() {
+    var c = addNode("Meine Ideen", 0, 0);
+    var a = addNode("Projekt 1", -180, -120);
+    var b = addNode("Projekt 2", 180, -120);
+    var e = addNode("Ziele", 0, 160);
+    edges.add([{ from: c, to: a }, { from: c, to: b }, { from: c, to: e }]);
+  }
+
+  // ---------- Knoten / Kanten ----------
+  function addNode(label, x, y) {
+    var id = nextId++;
+    var node = { id: id, label: label };
+    if (typeof x === "number") { node.x = x; node.y = y; }
+    nodes.add(node);
+    return id;
+  }
+
+  function renameNode(id) {
+    var n = nodes.get(id);
+    if (!n) return;
+    var label = prompt("Text ändern:", n.label);
+    if (label !== null && label.trim() !== "") {
+      nodes.update({ id: id, label: label.trim() });
+      save();
+    }
+  }
+
+  function deleteSelection() {
+    var sel = network.getSelection();
+    if (sel.nodes.length) {
+      var nIds = sel.nodes;
+      var connected = edges.get().filter(function (e) {
+        return nIds.indexOf(e.from) !== -1 || nIds.indexOf(e.to) !== -1;
+      }).map(function (e) { return e.id; });
+      var all = sel.edges.concat(connected).filter(function (v, i, a) { return a.indexOf(v) === i; });
+      edges.remove(all);
+      nodes.remove(nIds);
+      save();
+    } else if (sel.edges.length) {
+      edges.remove(sel.edges);
+      save();
+    } else {
+      flash("Nichts ausgewählt — klicke zuerst einen Knoten oder eine Linie an.");
+    }
+  }
+
+  // ---------- Verbinden-Modus ----------
+  var connectMode = false, connectSource = null;
+  var btnConnect = document.getElementById("btnConnect");
+
+  function toggleConnect() {
+    connectMode = !connectMode;
+    connectSource = null;
+    btnConnect.classList.toggle("active", connectMode);
+    updateHint();
+  }
+
+  network.on("click", function (params) {
+    if (!connectMode) return;
+    if (params.nodes.length) {
+      var id = params.nodes[0];
+      if (connectSource === null) {
+        connectSource = id;
+        nodes.update({ id: id, color: { border: "#facc15", background: "rgba(250,204,21,0.2)" } });
+        updateHint();
+      } else if (id !== connectSource) {
+        edges.add({ from: connectSource, to: id });
+        resetSourceColor();
+        connectMode = false;
+        btnConnect.classList.remove("active");
+        connectSource = null;
+        updateHint();
+        save();
+      }
+    }
+  });
+
+  function resetSourceColor() {
+    if (connectSource !== null) {
+      nodes.update({
+        id: connectSource,
+        color: { background: "rgba(34,197,94,0.18)", border: "#22c55e" }
+      });
+    }
+  }
+
+  // ---------- Doppelklick: leer = neue Idee, Knoten = umbenennen ----------
+  network.on("doubleClick", function (params) {
+    if (params.nodes.length) {
+      renameNode(params.nodes[0]);
+    } else {
+      var label = prompt("Neue Idee:");
+      if (label && label.trim() !== "") {
+        var p = params.pointer.canvas;
+        var id = addNode(label.trim(), p.x, p.y);
+        network.selectNodes([id]);
+        save();
+      }
+    }
+  });
+
+  // ---------- Positionen sichern ----------
+  network.on("dragEnd", save);
+  network.on("stabilizationIterationsDone", save);
+
+  // ---------- Tastatur ----------
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Delete") deleteSelection();
+  });
+
+  // ---------- Buttons ----------
+  document.getElementById("btnAdd").onclick = function () {
+    var label = prompt("Neue Idee:");
+    if (label && label.trim() !== "") {
+      var id = addNode(label.trim(), (Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200);
+      network.selectNodes([id]);
+      save();
+    }
+  };
+  btnConnect.onclick = toggleConnect;
+  document.getElementById("btnRename").onclick = function () {
+    var sel = network.getSelection().nodes;
+    if (sel.length) renameNode(sel[0]);
+    else flash("Wähle zuerst einen Knoten aus.");
+  };
+  document.getElementById("btnDelete").onclick = deleteSelection;
+
+  document.getElementById("btnFit").onclick = function () { network.fit({ animation: true }); };
+
+  var btnPhysics = document.getElementById("btnPhysics");
+  btnPhysics.onclick = function () {
+    physicsOn = !physicsOn;
+    network.setOptions({ physics: { enabled: physicsOn } });
+    btnPhysics.textContent = "⚛️ Physik: " + (physicsOn ? "An" : "Aus");
+    save();
+  };
+
+  // Farbfelder
+  var swatches = document.querySelectorAll(".swatch");
+  for (var i = 0; i < swatches.length; i++) {
+    swatches[i].onclick = function () {
+      var sel = network.getSelection().nodes;
+      if (!sel.length) { flash("Wähle zuerst einen Knoten aus, dann die Farbe."); return; }
+      var bg = this.getAttribute("data-bg");
+      var border = this.getAttribute("data-border");
+      sel.forEach(function (id) {
+        nodes.update({ id: id, color: { background: bg, border: border,
+          highlight: { background: bg, border: border } } });
+      });
+      save();
+    };
+  }
+
+  // Export
+  document.getElementById("btnExport").onclick = function () {
+    var data = { nodes: nodes.get(), edges: edges.get(), nextId: nextId, physics: physicsOn };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "gedaechtnis-netz.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  // Import
+  var fileInput = document.getElementById("fileImport");
+  document.getElementById("btnImport").onclick = function () { fileInput.click(); };
+  fileInput.onchange = function (ev) {
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var d = JSON.parse(reader.result);
+        nodes.clear(); edges.clear();
+        nodes.add(d.nodes || []);
+        edges.add(d.edges || []);
+        nextId = d.nextId || 1;
+        physicsOn = d.physics !== false;
+        network.setOptions({ physics: { enabled: physicsOn } });
+        btnPhysics.textContent = "⚛️ Physik: " + (physicsOn ? "An" : "Aus");
+        network.fit({ animation: true });
+        save();
+        flash("Import erfolgreich ✔");
+      } catch (e) { alert("Datei konnte nicht gelesen werden."); }
+    };
+    reader.readAsText(file);
+    fileInput.value = "";
+  };
+
+  // Reset
+  document.getElementById("btnReset").onclick = function () {
+    if (!confirm("Wirklich alles löschen und neu starten?")) return;
+    nodes.clear(); edges.clear();
+    localStorage.removeItem(KEY);
+    nextId = 1; physicsOn = true;
+    network.setOptions({ physics: { enabled: true } });
+    btnPhysics.textContent = "⚛️ Physik: An";
+    seed();
+    network.fit({ animation: true });
+    save();
+  };
+
+  // ---------- Hinweisleiste ----------
+  var hint = document.getElementById("hint");
+  function updateHint() {
+    if (connectMode) {
+      hint.innerHTML = connectSource === null
+        ? "🔗 <b>Verbindungs-Modus:</b> Klicke den <b>ersten</b> Knoten an."
+        : "🔗 <b>Verbindungs-Modus:</b> Jetzt den <b>zweiten</b> Knoten anklicken.";
+    } else {
+      hint.innerHTML = "💡 <b>Doppelklick</b> auf leere Fläche = neue Idee &nbsp;·&nbsp; " +
+        "<b>Doppelklick auf Knoten</b> = umbenennen &nbsp;·&nbsp; " +
+        "Knoten <b>ziehen</b> zum Bewegen &nbsp;·&nbsp; <b>Entf</b>-Taste = löschen";
+    }
+  }
+  var flashTimer;
+  function flash(msg) {
+    hint.innerHTML = "ℹ️ " + msg;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(updateHint, 2600);
+  }
+
+  // ---------- Start ----------
+  load();
+  btnPhysics.textContent = "⚛️ Physik: " + (physicsOn ? "An" : "Aus");
+  network.setOptions({ physics: { enabled: physicsOn } });
+  updateHint();
+  network.once("stabilizationIterationsDone", function () {
+    network.fit({ animation: true });
+  });
+
+})();
+</script>
+</body>
+</html>
