@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas — Shopify-Style Test</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #f1f2f4;
+    --surface: #ffffff;
+    --surface-sub: #fafafa;
+    --border: #e3e3e3;
+    --border-strong: #d1d1d1;
+    --text: #303030;
+    --text-sub: #616161;
+    --text-dim: #8a8a8a;
+    --brand: #008060;
+    --brand-dark: #004c3f;
+    --btn: #303030;
+    --btn-hover: #1a1a1a;
+    --pos-bg: #cdfee1; --pos-text: #0c5132;
+    --neg-bg: #ffe0e0; --neg-text: #8e1f1f;
+    --neu-bg: #f1f1f1; --neu-text: #4a4a4a;
+    --warn-bg: #ffe8b0; --warn-text: #7a5b00;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 240px; flex-shrink: 0; background: var(--surface-sub);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 12px; gap: 2px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 9px; padding: 8px 8px 14px;
+    font-weight: 650; font-size: 16px; color: var(--text);
+  }
+  .brand .mark {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    background: linear-gradient(135deg, #00a37a, #004c3f);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;
+  }
+  .nav-group-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .4px; padding: 12px 8px 4px; font-weight: 600; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px;
+    color: var(--text); cursor: pointer; font-weight: 500; font-size: 13.5px;
+    transition: background .12s ease; user-select: none;
+  }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--text-sub); }
+  .nav-item:hover { background: #ececec; }
+  .nav-item.active { background: #e4e4e4; font-weight: 650; }
+  .nav-item.active svg { color: var(--text); }
+  .sidebar-foot { margin-top: auto; border-top: 1px solid var(--border); padding-top: 8px; }
+
+  /* ---------- Main ---------- */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    height: 56px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; padding: 0 20px; flex-shrink: 0;
+  }
+  .search {
+    flex: 1; max-width: 460px; margin: 0 auto; display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text-dim);
+  }
+  .search svg { width: 16px; height: 16px; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 8px; background: #eaeaea; color: var(--text);
+    display: flex; align-items: center; justify-content: center; font-weight: 650; font-size: 13px;
+  }
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .page { max-width: 1040px; margin: 0 auto; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+  .page-title { font-size: 20px; font-weight: 700; letter-spacing: -.2px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .btn svg { width: 16px; height: 16px; }
+  .btn-primary { background: var(--btn); color: #fff; box-shadow: 0 1px 0 rgba(0,0,0,.08); }
+  .btn-primary:hover { background: var(--btn-hover); }
+  .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); box-shadow: 0 1px 0 rgba(0,0,0,.04); }
+  .btn-secondary:hover { background: #f7f7f7; }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 1px 0 rgba(23,24,24,.05); padding: 16px;
+  }
+  .card-pad { padding: 20px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) { .grid-4 { grid-template-columns: 1fr 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .grid-4 { grid-template-columns: 1fr; } }
+
+  .metric-label { font-size: 13px; color: var(--text-sub); font-weight: 500; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 700; letter-spacing: -.4px; }
+  .metric-foot { margin-top: 8px; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-sub); }
+
+  .delta { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; font-size: 12.5px; }
+  .delta.up { color: var(--pos-text); }
+  .delta.down { color: var(--neg-text); }
+  .delta svg { width: 13px; height: 13px; }
+
+  .section-title { font-size: 15px; font-weight: 650; margin-bottom: 2px; }
+  .section-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; }
+
+  /* Chart */
+  .chart { display: flex; align-items: flex-end; gap: 18px; height: 200px; padding-top: 10px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; max-width: 54px; border-radius: 6px 6px 0 0; background: var(--brand); transition: opacity .15s; }
+  .bar:hover { opacity: .82; }
+  .bar-val { font-size: 12.5px; font-weight: 600; color: var(--text); }
+  .bar-lbl { font-size: 12px; color: var(--text-sub); }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 12px; font-weight: 600; color: var(--text-sub);
+    padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-sub);
+  }
+  thead th:first-child { border-top-left-radius: 12px; }
+  thead th:last-child { border-top-right-radius: 12px; text-align: right; }
+  tbody td { padding: 13px 14px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafafa; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .cell-title { font-weight: 600; color: var(--text); }
+  .cell-sub { font-size: 12px; color: var(--text-dim); }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge.pos { background: var(--pos-bg); color: var(--pos-text); }
+  .badge.neu { background: var(--neu-bg); color: var(--neu-text); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn-text); }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  /* Settings rows */
+  .set-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+  .set-row:last-child { border-bottom: none; }
+  .set-label { font-weight: 600; }
+  .set-desc { font-size: 12.5px; color: var(--text-sub); margin-top: 2px; }
+  select, input[type=text], input[type=password] {
+    padding: 8px 11px; border: 1px solid var(--border-strong); border-radius: 8px; font-size: 13px;
+    font-family: inherit; color: var(--text); background: var(--surface); min-width: 200px; outline: none;
+  }
+  select:focus, input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(0,128,96,.15); }
+  .swpill { width: 40px; height: 22px; border-radius: 12px; background: #c9c9c9; position: relative; cursor: pointer; transition: background .2s; }
+  .swpill.on { background: var(--brand); }
+  .swpill::after { content:''; position:absolute; width:16px; height:16px; border-radius:50%; background:#fff; top:3px; left:3px; transition:left .2s; box-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .swpill.on::after { left: 21px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+  .stack > * + * { margin-top: 16px; }
+
+  .demo-note {
+    background: #fff8e6; border: 1px solid #ffe08a; color: #7a5b00;
+    padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand"><span class="mark">A</span> Atlas</div>
+    <div class="nav-item active" data-view="analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M20 20H3"/></svg> Analytics
+    </div>
+    <div class="nav-item" data-view="finanzen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.5"/></svg> Finanzen
+    </div>
+    <div class="nav-item" data-view="kunden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2A3 3 0 0116 11M21 20a5.5 5.5 0 00-4-5.3"/></svg> Kunden
+    </div>
+    <div class="nav-item" data-view="projekte">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> Projekte
+    </div>
+    <div class="nav-item" data-view="atlas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a8 8 0 01-11.5 7.2L4 20l1-4.5A8 8 0 1121 12z"/></svg> Atlas KI
+    </div>
+    <div class="sidebar-foot">
+      <div class="nav-item" data-view="einstellungen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 00-2.3-1.3L14 2h-4l-.3 2.2a7 7 0 00-2.3 1.3l-2.3-1-2 3.4 2 1.5A7 7 0 005 12a7 7 0 00.1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 002.3 1.3L10 22h4l.3-2.2a7 7 0 002.3-1.3l2.3 1 2-3.4-2-1.5A7 7 0 0019 12z"/></svg> Einstellungen
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        Suchen …
+      </div>
+      <div class="avatar">B</div>
+    </div>
+
+    <div class="content">
+      <div class="page">
+        <div class="demo-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          Test-Ansicht im Shopify-Stil — nur zum Anschauen des Designs. Deine echte funktionierende Datei bleibt unverändert.
+        </div>
+
+        <!-- ANALYTICS -->
+        <section class="view active" id="analytics">
+          <div class="page-head">
+            <div class="page-title">Analytics</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg>
+                Importieren
+              </button>
+              <button class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Hinzufügen
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-4" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="metric-label">Besucher gesamt</div>
+              <div class="metric-value">405</div>
+              <div class="metric-foot"><span class="delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 14l5-5 5 5"/></svg> 62 %</span> seit letztem Update</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Einnahmen (Monat)</div>
+              <div class="metric-value">380 €</div>
+              <div class="metric-foot"><span class="delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 14l5-5 5 5"/></svg> 18 %</span> vs. Vormonat</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Aktive Kunden</div>
+              <div class="metric-value">2</div>
+              <div class="metric-foot"><span class="delta down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 10l5 5 5-5"/></svg> 1</span> in Verhandlung</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Projekte</div>
+              <div class="metric-value">3</div>
+              <div class="metric-foot">2 in Arbeit · 1 fast fertig</div>
+            </div>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="card card-pad">
+              <div class="section-title">Website-Besuche</div>
+              <div class="section-sub">Besuche pro Website</div>
+              <div class="chart">
+                <div class="bar-col"><div class="bar-val">200</div><div class="bar" style="height:88%"></div><div class="bar-lbl">Kaltblut</div></div>
+                <div class="bar-col"><div class="bar-val">85</div><div class="bar" style="height:37%"></div><div class="bar-lbl">RouteVibe</div></div>
+                <div class="bar-col"><div class="bar-val">120</div><div class="bar" style="height:53%"></div><div class="bar-lbl">DGS-App</div></div>
+              </div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden;">
+              <div style="padding:16px 16px 0;"><div class="section-title">Websites</div><div class="section-sub">Besucher & Trend</div></div>
+              <table>
+                <thead><tr><th>Website</th><th>Status</th><th>Besuche</th></tr></thead>
+                <tbody>
+                  <tr><td><div class="cell-title">Kaltblut</div><div class="cell-sub">kaltblut.io</div></td><td><span class="badge pos"><span class="dot"></span>+33 %</span></td><td class="num">200</td></tr>
+                  <tr><td><div class="cell-title">RouteVibe</div><div class="cell-sub">routevibe.de</div></td><td><span class="badge warn"><span class="dot"></span>−15 %</span></td><td class="num">85</td></tr>
+                  <tr><td><div class="cell-title">DGS-App</div><div class="cell-sub">dgs.app</div></td><td><span class="badge neu"><span class="dot"></span>neu</span></td><td class="num">120</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- FINANZEN -->
+        <section class="view" id="finanzen">
+          <div class="page-head"><div class="page-title">Finanzen</div>
+            <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Buchung</button>
+          </div>
+          <div class="grid grid-4" style="margin-bottom:16px;">
+            <div class="card"><div class="metric-label">Einnahmen</div><div class="metric-value" style="color:var(--brand)">380 €</div></div>
+            <div class="card"><div class="metric-label">Ausgaben</div><div class="metric-value" style="color:var(--neg-text)">12 €</div></div>
+            <div class="card"><div class="metric-label">Netto-Gewinn</div><div class="metric-value">368 €</div></div>
+            <div class="card"><div class="metric-label">Marge</div><div class="metric-value">97 %</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:16px 16px 0;"><div class="section-title">Letzte Buchungen</div></div>
+            <table>
+              <thead><tr><th>Beschreibung</th><th>Datum</th><th>Betrag</th></tr></thead>
+              <tbody>
+                <tr><td class="cell-title">Website verkauft</td><td class="cell-sub">15.07.2026</td><td class="num" style="color:var(--brand)">+300 €</td></tr>
+                <tr><td class="cell-title">Logo Design</td><td class="cell-sub">16.07.2026</td><td class="num" style="color:var(--brand)">+80 €</td></tr>
+                <tr><td class="cell-title">Domain</td><td class="cell-sub">02.07.2026</td><td class="num" style="color:var(--neg-text)">−12 €</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- KUNDEN -->
+        <section class="view" id="kunden">
+          <div class="page-head"><div class="page-title">Kunden</div>
+            <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Kunde hinzufügen</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <table>
+              <thead><tr><th>Name</th><th>Kontakt</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="cell-title">Max Müller</td><td class="cell-sub">max@mail.de</td><td><span class="badge pos"><span class="dot"></span>Aktiv</span></td></tr>
+                <tr><td class="cell-title">Firma XY</td><td class="cell-sub">info@xy.de</td><td><span class="badge warn"><span class="dot"></span>Verhandlung</span></td></tr>
+                <tr><td class="cell-title">Sarah K.</td><td class="cell-sub">sarah@web.de</td><td><span class="badge neu"><span class="dot"></span>Neu</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- PROJEKTE -->
+        <section class="view" id="projekte">
+          <div class="page-head"><div class="page-title">Projekte</div>
+            <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Neues Projekt</button>
+          </div>
+          <div class="grid grid-2">
+            <div class="card card-pad stack">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><div class="section-title">DGS Lern-App</div><span class="badge warn"><span class="dot"></span>In Arbeit</span></div>
+              <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden;"><div style="width:50%;height:100%;background:var(--brand)"></div></div>
+              <div class="cell-sub">Fortschritt 50 % · 0 € Verdienst</div>
+            </div>
+            <div class="card card-pad stack">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><div class="section-title">Kaltblut Spiel</div><span class="badge pos"><span class="dot"></span>Fast fertig</span></div>
+              <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden;"><div style="width:85%;height:100%;background:var(--brand)"></div></div>
+              <div class="cell-sub">Fortschritt 85 % · 150 € Verdienst</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ATLAS -->
+        <section class="view" id="atlas">
+          <div class="page-head"><div class="page-title">Atlas KI</div><span class="badge pos"><span class="dot"></span>Verbunden</span></div>
+          <div class="card card-pad">
+            <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--surface-sub);min-height:220px;display:flex;flex-direction:column;gap:12px;">
+              <div style="align-self:flex-start;max-width:75%;background:#fff;border:1px solid var(--border);padding:10px 13px;border-radius:12px;">Hi Bilal, was hast du heute geschafft?</div>
+              <div style="align-self:flex-end;max-width:75%;background:#303030;color:#fff;padding:10px 13px;border-radius:12px;">Website für 300 € verkauft</div>
+              <div style="align-self:flex-start;max-width:75%;background:#fff;border:1px solid var(--border);padding:10px 13px;border-radius:12px;">Erledigt — 300 € als Einnahme gebucht.</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;">
+              <input type="text" placeholder="Nachricht an Atlas …" style="flex:1;min-width:0;">
+              <button class="btn btn-secondary" style="padding:8px 12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3zM6 12a6 6 0 0012 0M12 18v3"/></svg></button>
+              <button class="btn btn-primary" style="padding:8px 14px;">Senden</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- EINSTELLUNGEN -->
+        <section class="view" id="einstellungen">
+          <div class="page-head"><div class="page-title">Einstellungen</div></div>
+          <div class="grid grid-2">
+            <div class="card card-pad">
+              <div class="section-title" style="margin-bottom:6px;">Claude API</div>
+              <div class="set-row"><div><div class="set-label">API-Key</div><div class="set-desc">Für den echten Atlas KI-Chat</div></div><input type="password" placeholder="sk-ant-…"></div>
+              <div class="set-row"><div><div class="set-label">Modell</div><div class="set-desc">Geschwindigkeit vs. Klugheit</div></div>
+                <select><option>Haiku 4.5 — schnell</option><option>Sonnet 5</option><option>Opus 4.8 — schlau</option></select></div>
+              <div class="set-row"><div><div class="set-label">Antworten vorlesen</div><div class="set-desc">Atlas spricht seine Antworten</div></div><div class="swpill on"></div></div>
+            </div>
+            <div class="card card-pad">
+              <div class="section-title" style="margin-bottom:6px;">Region</div>
+              <div class="set-row"><div><div class="set-label">Sprache</div></div><select><option>Deutsch</option><option>English</option></select></div>
+              <div class="set-row"><div><div class="set-label">Währung</div></div><select><option>Euro (€)</option><option>Dollar ($)</option></select></div>
+              <div class="set-row"><div><div class="set-label">Automatisches Tracking</div><div class="set-desc">Atlas erfasst neue Daten</div></div><div class="swpill on"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;">
+            <button class="btn btn-secondary">Daten exportieren</button>
+            <button class="btn btn-primary">Speichern</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const titles = { analytics:'Analytics', finanzen:'Finanzen', kunden:'Kunden', projekte:'Projekte', atlas:'Atlas KI', einstellungen:'Einstellungen' };
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const v = item.dataset.view;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
+        document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id === v));
+        document.querySelector('.content').scrollTop = 0;
+      });
+    });
+    document.querySelectorAll('.swpill').forEach(s => s.addEventListener('click', () => s.classList.toggle('on')));
+  </script>
+</body>
+</html>
