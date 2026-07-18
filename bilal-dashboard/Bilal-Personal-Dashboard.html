@@ -989,63 +989,60 @@ function buildNeuralNetwork(){
   brainLinks = [];
   particles = [];
 
-  // Zentral-Knoten
+  // Zentral-Knoten (größer und prominenter)
   brainNodes.push({
-    id:'center', label:'Ich', group:'center', r:20,
+    id:'center', label:'Ich', group:'center', r:25,
     x:0, y:0, z:0, vx:0, vy:0, vz:0, fixed:true
   });
 
-  // Kategorie-Knoten (Interessen, Hobbys, Ziele, Freunde, Schule, Freizeit)
+  // Kategorie-Knoten - in Schichten angeordnet für 3D-Tiefe
   const categories = [
-    { name:'Interessen', angle:0 },
-    { name:'Hobbys', angle:Math.PI/3 },
-    { name:'Ziele', angle:2*Math.PI/3 },
-    { name:'Freunde', angle:Math.PI },
-    { name:'Schule', angle:4*Math.PI/3 },
-    { name:'Freizeit', angle:5*Math.PI/3 }
+    { name:'Interessen', angle:0, z:-120 },
+    { name:'Hobbys', angle:Math.PI/3, z:-80 },
+    { name:'Ziele', angle:2*Math.PI/3, z:0 },
+    { name:'Freunde', angle:Math.PI, z:80 },
+    { name:'Schule', angle:4*Math.PI/3, z:120 },
+    { name:'Freizeit', angle:5*Math.PI/3, z:40 }
   ];
 
   const catNodes = {};
   categories.forEach(cat => {
-    const d = 180;
+    const d = 220; // größerer Radius
     const x = Math.cos(cat.angle)*d, y = Math.sin(cat.angle)*d;
     const node = {
-      id:'cat:'+cat.name, label:cat.name, group:'category', r:14,
-      x:x, y:y, z:(Math.random()-0.5)*60, vx:0, vy:0, vz:0
+      id:'cat:'+cat.name, label:cat.name, group:'category', r:16,
+      x:x, y:y, z:cat.z, vx:0, vy:0, vz:0
     };
     brainNodes.push(node);
     catNodes[cat.name] = node;
-    // Zentral mit Kategorie verbunden
     brainLinks.push({ s:'center', t:node.id, strong:true });
   });
 
-  // Fakten-Knoten aus data.brain
+  // Fakten-Knoten - viel größere Z-Streuung für dramatisches 3D-Erscheinungsbild
   data.brain.forEach((f, idx) => {
     const cat = catNodes[f.category];
     if(!cat) return;
     const angle = Math.random()*6.283;
-    const dist = 80+Math.random()*60;
+    const dist = 100+Math.random()*80;
     const x = cat.x+Math.cos(angle)*dist;
     const y = cat.y+Math.sin(angle)*dist;
-    const z = cat.z+(Math.random()-0.5)*80;
+    const z = cat.z+(Math.random()-0.5)*200; // viel größere Tiefe
     const node = {
-      id:'f'+idx, label:f.value, group:'fact', r:10,
+      id:'f'+idx, label:f.value, group:'fact', r:9,
       x:x, y:y, z:z, vx:0, vy:0, vz:0
     };
     brainNodes.push(node);
-    // Fakt mit seiner Kategorie verbunden
-    brainLinks.push({ s:cat.id, t:node.id });
+    brainLinks.push({ s:cat.id, t:node.id, strength:0.6 });
   });
 
-  // Zusätzliche Verbindungen zwischen Kategorien (neuronale Pfade)
-  // z.B. Freunde ↔ Hobbys (treffe mich beim Hobby)
+  // Zusätzliche Verbindungen
   const extraLinks = [
     ['cat:Freunde', 'cat:Hobbys'],
     ['cat:Schule', 'cat:Freizeit'],
     ['cat:Interessen', 'cat:Ziele']
   ];
   extraLinks.forEach(([s, t]) => {
-    brainLinks.push({ s, t, weak:true });
+    brainLinks.push({ s, t, weak:true, strength:0.3 });
   });
 }
 
@@ -1056,7 +1053,7 @@ function brainStep(){
   const byId = {};
   brainNodes.forEach(n => byId[n.id]=n);
 
-  // 3D Force-directed physics
+  // 3D Force-directed physics (sanfter für stabilere Struktur)
   for(let i=0;i<brainNodes.length;i++){
     const a = brainNodes[i];
     for(let j=i+1;j<brainNodes.length;j++){
@@ -1064,7 +1061,7 @@ function brainStep(){
       let dx=a.x-b.x, dy=a.y-b.y, dz=a.z-b.z;
       let d2=dx*dx+dy*dy+dz*dz;
       if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); dz=Math.random(); }
-      const d=Math.sqrt(d2), f=3000/d2;
+      const d=Math.sqrt(d2), f=2500/d2; // etwas sanfter
       const fx=(dx/d)*f, fy=(dy/d)*f, fz=(dz/d)*f;
       a.vx+=fx; a.vy+=fy; a.vz+=fz;
       b.vx-=fx; b.vy-=fy; b.vz-=fz;
@@ -1077,34 +1074,34 @@ function brainStep(){
     if(!a||!b) return;
     const dx=b.x-a.x, dy=b.y-a.y, dz=b.z-a.z;
     const d=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.01;
-    const target=l.strong?100:80, f=(d-target)*0.015;
+    const target=l.strong?100:80, f=(d-target)*0.012; // etwas sanfter
     const fx=(dx/d)*f, fy=(dy/d)*f, fz=(dz/d)*f;
     a.vx+=fx; a.vy+=fy; a.vz+=fz;
     b.vx-=fx; b.vy-=fy; b.vz-=fz;
   });
 
-  // Damping + centering
+  // Damping + centering (stärkere Stabilisierung)
   brainNodes.forEach(n => {
     if(n.fixed){ n.x=0; n.y=0; n.z=0; n.vx=0; n.vy=0; n.vz=0; return; }
-    n.vx += (0-n.x)*0.002;
-    n.vy += (0-n.y)*0.002;
+    n.vx += (0-n.x)*0.003; // stärkeres Centering
+    n.vy += (0-n.y)*0.003;
     n.vz += (0-n.z)*0.001;
-    n.vx *= 0.88; n.vy *= 0.88; n.vz *= 0.88;
-    n.x += Math.max(-20, Math.min(20, n.vx));
-    n.y += Math.max(-20, Math.min(20, n.vy));
-    n.z += Math.max(-30, Math.min(30, n.vz));
+    n.vx *= 0.92; n.vy *= 0.92; n.vz *= 0.92; // höheres Damping
+    n.x += Math.max(-15, Math.min(15, n.vx));
+    n.y += Math.max(-15, Math.min(15, n.vy));
+    n.z += Math.max(-25, Math.min(25, n.vz));
   });
 
-  // Particles along links
-  if(Math.random()<0.1){
+  // Particles along links (sehr selten und entspannt)
+  if(Math.random()<0.01){ // nur 1% chance
     brainLinks.forEach(l => {
-      if(Math.random()>0.3) return;
+      if(Math.random()>0.15) return; // nur 15% der Links
       const a=byId[l.s], b=byId[l.t];
       if(!a||!b) return;
       particles.push({
         sx:a.x, sy:a.y, sz:a.z,
         tx:b.x, ty:b.y, tz:b.z,
-        progress:0, speed:0.02+Math.random()*0.03
+        progress:0, speed:0.008+Math.random()*0.008 // langsamer
       });
     });
   }
@@ -1130,9 +1127,9 @@ function brainDraw(){
   const colorStr = `rgb(${rgb.r||91},${rgb.g||140},${rgb.b||255})`;
   const cx = brainW/2, cy = brainH/2;
 
-  // 3D Perspective transform
-  const rotX = brainTime*0.0008;
-  const rotY = brainTime*0.0012;
+  // 3D Perspective transform - stärkere Tiefenwirkung
+  const rotX = brainTime*0.0006;
+  const rotY = brainTime*0.001;
   const P3D = (x,y,z) => {
     let x2=x, y2=y, z2=z;
     const cy2=Math.cos(rotX), sy2=Math.sin(rotX);
@@ -1141,20 +1138,20 @@ function brainDraw(){
     const cx2=Math.cos(rotY), sx2=Math.sin(rotY);
     const tx=x2*cx2+z2*sx2; const tz2=-x2*sx2+z2*cx2;
     x2=tx; z2=tz2;
-    const scale=300/(300+z2*0.5);
+    const scale=400/(400+z2*1.2); // stärkere Perspektive
     return { sx:cx+x2*scale, sy:cy+y2*scale, scale:scale, z:z2 };
   };
 
   // Collect all objects
   const objects = [];
 
-  // Center cube (3D-Würfel)
-  centerCube.rot += 0.008;
+  // Center cube (3D-Würfel) - größer und prominenter
+  centerCube.rot += 0.005;
   const cubeVertices = [
     [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],
     [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]
   ];
-  const cubeSize = 30;
+  const cubeSize = 50; // größer
   const vertices = cubeVertices.map(v => P3D(v[0]*cubeSize, v[1]*cubeSize, v[2]*cubeSize));
   const cubeEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
 
