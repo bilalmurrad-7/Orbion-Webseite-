@@ -1064,9 +1064,85 @@ function buildGalaxy(){
   }
 }
 
-// Stub functions for compatibility
-function buildBrain() { /* Already initialized */ }
-function brainStep() { /* Animation in render loop */ }
+// Knowledge-Graph Nodes (Interessen, Hobbys, Ziele)
+function buildBrain(){
+  const prev = {};
+  brainNodes.forEach(n => prev[n.id] = { x:n.x, y:n.y });
+  brainNodes = [];
+  brainLinks = [];
+
+  // Zentral-Knoten (Ich)
+  brainNodes.push({
+    id:'me', label:(data.profile.name||'Ich'), group:'center', r:16, x:0, y:0, vx:0, vy:0, fixed:true
+  });
+
+  // Kategorien + Fakten
+  const cats = {};
+  data.brain.forEach((f, idx) => {
+    if (!cats[f.category]) {
+      const cid = 'cat:'+f.category;
+      cats[f.category] = cid;
+      const p = prev[cid];
+      brainNodes.push({
+        id:cid, label:f.category, group:'category', cat:f.category, r:9,
+        x:p?p.x:(Math.random()-.5)*180, y:p?p.y:(Math.random()-.5)*180, vx:0, vy:0
+      });
+      brainLinks.push({ s:'me', t:cid });
+    }
+    const nid = 'f'+idx;
+    const p = prev[nid];
+    const fn = {
+      id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:6,
+      x:p?p.x:(Math.random()-.5)*340, y:p?p.y:(Math.random()-.5)*340, vx:0, vy:0, sat:[]
+    };
+    const sn = 5+Math.floor(Math.random()*9);
+    for(let k=0;k<sn;k++){
+      fn.sat.push({
+        a:Math.random()*6.2832, d:14+Math.random()*34,
+        s:0.6+Math.random()*1.1, tw:Math.random()*6.2832
+      });
+    }
+    brainNodes.push(fn);
+    brainLinks.push({ s:cats[f.category], t:nid });
+  });
+}
+
+function brainStep(){
+  const byId = {};
+  brainNodes.forEach(n => byId[n.id]=n);
+
+  // Force-directed physics
+  for(let i=0;i<brainNodes.length;i++){
+    const a = brainNodes[i];
+    for(let j=i+1;j<brainNodes.length;j++){
+      const b = brainNodes[j];
+      let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+      if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); }
+      const d=Math.sqrt(d2), f=2600/d2, fx=(dx/d)*f, fy=(dy/d)*f;
+      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+    }
+  }
+
+  // Link forces
+  brainLinks.forEach(l => {
+    const a=byId[l.s], b=byId[l.t];
+    if(!a||!b) return;
+    const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
+    const target=(b.group==='fact')?74:122, f=(d-target)*0.02, fx=(dx/d)*f, fy=(dy/d)*f;
+    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+  });
+
+  // Damping + centering
+  brainNodes.forEach(n => {
+    if(n.fixed){ n.x=0; n.y=0; n.vx=0; n.vy=0; return; }
+    n.vx += (0-n.x)*0.003;
+    n.vy += (0-n.y)*0.003;
+    n.vx *= 0.86;
+    n.vy *= 0.86;
+    n.x += Math.max(-18, Math.min(18, n.vx));
+    n.y += Math.max(-18, Math.min(18, n.vy));
+  });
+}
 
 // V7 Heavy-Komplexität Render (Ringe + Nebulae + Bursts + massive Struktur)
 function brainDraw(){
@@ -1159,6 +1235,57 @@ function brainDraw(){
     dot(ctx, bp[0], bp[1], Math.max(0.8, 1.6), '#ffd3dc', 0.75);
   });
 
+  // ===== KNOWLEDGE NODES (Interessen, Hobbys, Ziele) =====
+  // Physics step
+  brainStep();
+
+  // Link-Verbindungen (fein)
+  const byId = {};
+  brainNodes.forEach(n => byId[n.id]=n);
+  ctx.lineWidth = 0.6;
+  brainLinks.forEach(l => {
+    const a = byId[l.s], b = byId[l.t];
+    if(!a||!b) return;
+    const pa = W2S(a.x, a.y), pb = W2S(b.x, b.y);
+    ctx.strokeStyle = hexA(base, 0.35);
+    ctx.beginPath();
+    ctx.moveTo(pa[0], pa[1]);
+    ctx.lineTo(pb[0], pb[1]);
+    ctx.stroke();
+  });
+
+  // Satelliten um Wissenknoten (kleine Pusteblumen)
+  ctx.lineWidth = 0.5;
+  brainNodes.forEach(n => {
+    if(!n.sat) return;
+    const pn = W2S(n.x, n.y);
+    n.sat.forEach(s => {
+      const a = s.a + brainTime*0.12;
+      const p = W2S(n.x+Math.cos(a)*s.d, n.y+Math.sin(a)*s.d);
+      ctx.strokeStyle = hexA(base, 0.08);
+      ctx.beginPath();
+      ctx.moveTo(pn[0], pn[1]);
+      ctx.lineTo(p[0], p[1]);
+      ctx.stroke();
+      const tw = 0.5 + 0.5*Math.sin(brainTime*1.8+s.tw);
+      dot(ctx, p[0], p[1], Math.max(0.4, s.s*0.8), base, 0.25+0.25*tw);
+    });
+  });
+
+  // Knoten selbst (hell)
+  brainNodes.forEach(n => {
+    const p = W2S(n.x, n.y);
+    const r = Math.max(2, n.r);
+    if(n.group === 'center'){
+      dot(ctx, p[0], p[1], r*3, base, 0.7);
+      dot(ctx, p[0], p[1], r*1.5, white, 0.95);
+    } else if(n.group === 'category'){
+      dot(ctx, p[0], p[1], r*1.7, white, 0.85);
+    } else {
+      dot(ctx, p[0], p[1], r*1.8, base, 0.8);
+    }
+  });
+
   // Central glow
   dot(ctx, brainW/2, brainH/2, 18, base, 0.8);
   dot(ctx, brainW/2, brainH/2, 9, white, 1);
@@ -1208,6 +1335,7 @@ function renderBrain(){
   brainCtx = brainCanvas.getContext('2d');
   resizeBrain();
   if(!galaxy.dots.length) buildGalaxy();
+  buildBrain(); // Always rebuild knowledge nodes
   if(!brainAnim) brainLoop();
 }
 function addFactFromUI(){
