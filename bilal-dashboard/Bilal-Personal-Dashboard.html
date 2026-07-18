@@ -967,159 +967,107 @@ function saveProfile() {
   save(); renderProfile(); renderAnalytics(); if (brainCanvas) buildBrain(); toast('Profil gespeichert ✔');
 }
 
-// ---------------- Big Brain Netzwerk 3D-Optik (Canvas Isometric) ----------------
+// ============ NEURAL NETWORK 3D ============
 let brainNodes = [], brainLinks = [];
 let brainAnim = null, brainCanvas = null, brainCtx = null;
 let brainTime = 0, brainW = 0, brainH = 0;
-let stars = [], rings = [], pyramids = [], nebulaClouds = [];
+let hoverNode = null, particles = [];
+let centerCube = { x:0, y:0, z:0, size:40, rot:0 };
+
 function brainColor() { return data.settings.brainColor || '#5b8cff'; }
-function hexToRgbArray(hex) {
-  const h = hex.replace('#','');
-  const r = parseInt(h.slice(0,2),16) || 91;
-  const g = parseInt(h.slice(2,4),16) || 140;
-  const b = parseInt(h.slice(4,6),16) || 255;
-  return [r/255, g/255, b/255];
+function hexToRgb(hex) {
+  const h = String(hex||'#5b8cff').replace('#','');
+  const r = parseInt(h.slice(0,2)||'5b',16) || 91;
+  const g = parseInt(h.slice(2,4)||'8c',16) || 140;
+  const b = parseInt(h.slice(4,6)||'ff',16) || 255;
+  return {r: isNaN(r)?91:r, g: isNaN(g)?140:g, b: isNaN(b)?255:b};
 }
 
-// Ultra-Komplexe Galaxie: Hubs + Blätter + Ringe + Bursts + Nebulae (v7 Heavy)
-let galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
-function buildGalaxy(){
-  let seed = 20260718;
-  const R = () => { seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
-  galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
-
-  // ===== NEBULAE (19 große Nebel-Wolken) =====
-  for(let i=0;i<19;i++){
-    const a = R()*6.283, d = 100+R()*820;
-    galaxy.nebulae.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, r:50+R()*140, al:0.08+R()*0.15 });
-  }
-
-  // ===== RINGS (4 tilted, rotierende Ringe) =====
-  galaxy.rings = [
-    {rx:300,ry:100,rot:-0.35}, {rx:500,ry:160,rot:-0.25},
-    {rx:750,ry:280,rot:-0.40}, {rx:1000,ry:350,rot:-0.20}
-  ];
-
-  // ===== CORE RAYS (60 Kern-Strahlen für Drama) =====
-  for(let i=0;i<60;i++){
-    galaxy.rays.push({ a:R()*6.283, len:80+R()*450, al:0.03+R()*0.12 });
-  }
-
-  // ===== CLUSTER HUBS + BLÄTTER (50 Hubs für massive Komplexität) =====
-  const hubs=[];
-  for(let i=0;i<50;i++){
-    const a=R()*6.283, d=150+R()*850;
-    const h={ x:Math.cos(a)*d, y:Math.sin(a)*d, s:2.0+R()*2.8 };
-    hubs.push(h);
-    galaxy.dots.push({ x:h.x, y:h.y, s:h.s, white:true, tw:R()*6.28 });
-
-    // Blätter um jeden Hub (12-30 pro Hub)
-    const nl=12+Math.floor(R()*28), full=R()<0.6, spread=full?6.283:(0.7+R()*2.4), start=R()*6.283;
-    for(let j=0;j<nl;j++){
-      const la = full ? R()*6.283 : start+(j/nl-0.5)*spread;
-      const ld = 14+R()*68;
-      const lx = h.x+Math.cos(la)*ld, ly = h.y+Math.sin(la)*ld;
-      galaxy.dots.push({ x:lx, y:ly, s:0.6+R()*1.5, white:R()<0.30, tw:R()*6.28 });
-      galaxy.links.push({ x1:h.x, y1:h.y, x2:lx, y2:ly, al:0.12 });
-
-      // Sub-Blätter (zweite Ebene!)
-      if(R()<0.25){
-        const sa=la+(R()-0.5)*0.3, sd=10+R()*32, sx=lx+Math.cos(sa)*sd, sy=ly+Math.sin(sa)*sd;
-        galaxy.dots.push({ x:sx, y:sy, s:0.5+R()*0.9, white:false, tw:R()*6.28 });
-        galaxy.links.push({ x1:lx, y1:ly, x2:sx, y2:sy, al:0.08 });
-      }
-    }
-  }
-
-  // Cluster-zu-Cluster Verbindungen (3 nächste Nachbarn)
-  for(let i=0;i<hubs.length;i++){
-    const ds=[];
-    for(let j=0;j<hubs.length;j++){
-      if(i===j) continue;
-      const dx=hubs[i].x-hubs[j].x, dy=hubs[i].y-hubs[j].y;
-      ds.push([dx*dx+dy*dy,j]);
-    }
-    ds.sort((a,b)=>a[0]-b[0]);
-    for(let k=0;k<3;k++){
-      const j=ds[k][1];
-      if(i<j) galaxy.links.push({ x1:hubs[i].x, y1:hubs[i].y, x2:hubs[j].x, y2:hubs[j].y, al:0.07 });
-    }
-  }
-
-  // ===== DANDELION BURSTS (14 pink Pusteblumen) =====
-  for(let i=0;i<14;i++){
-    const a=R()*6.283, d=260+R()*700;
-    const b={ x:Math.cos(a)*d, y:Math.sin(a)*d, rays:[] };
-    const nr=18+Math.floor(R()*32);
-    for(let j=0;j<nr;j++){
-      b.rays.push({ a:R()*6.283, l:24+R()*80, s:0.8+R()*1.5, tw:R()*6.28 });
-    }
-    galaxy.bursts.push(b);
-  }
-
-  // ===== DUST STARS (800 Sternenstaub überall) =====
-  for(let i=0;i<800;i++){
-    const a=R()*6.283, d=Math.pow(R(),0.65)*1050;
-    galaxy.dust.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, s:0.3+R()*1.1, tw:R()*6.28 });
-  }
-}
-
-// Knowledge-Graph Nodes (Interessen, Hobbys, Ziele)
-function buildBrain(){
-  const prev = {};
-  brainNodes.forEach(n => prev[n.id] = { x:n.x, y:n.y });
+// ===== NEURAL NETWORK BUILDER =====
+function buildNeuralNetwork(){
   brainNodes = [];
   brainLinks = [];
+  particles = [];
 
-  // Zentral-Knoten (Ich)
+  // Zentral-Knoten
   brainNodes.push({
-    id:'me', label:(data.profile.name||'Ich'), group:'center', r:16, x:0, y:0, vx:0, vy:0, fixed:true
+    id:'center', label:'Ich', group:'center', r:20,
+    x:0, y:0, z:0, vx:0, vy:0, vz:0, fixed:true
   });
 
-  // Kategorien + Fakten
-  const cats = {};
-  data.brain.forEach((f, idx) => {
-    if (!cats[f.category]) {
-      const cid = 'cat:'+f.category;
-      cats[f.category] = cid;
-      const p = prev[cid];
-      brainNodes.push({
-        id:cid, label:f.category, group:'category', cat:f.category, r:9,
-        x:p?p.x:(Math.random()-.5)*180, y:p?p.y:(Math.random()-.5)*180, vx:0, vy:0
-      });
-      brainLinks.push({ s:'me', t:cid });
-    }
-    const nid = 'f'+idx;
-    const p = prev[nid];
-    const fn = {
-      id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:6,
-      x:p?p.x:(Math.random()-.5)*340, y:p?p.y:(Math.random()-.5)*340, vx:0, vy:0, sat:[]
+  // Kategorie-Knoten (Interessen, Hobbys, Ziele, Freunde, Schule, Freizeit)
+  const categories = [
+    { name:'Interessen', angle:0 },
+    { name:'Hobbys', angle:Math.PI/3 },
+    { name:'Ziele', angle:2*Math.PI/3 },
+    { name:'Freunde', angle:Math.PI },
+    { name:'Schule', angle:4*Math.PI/3 },
+    { name:'Freizeit', angle:5*Math.PI/3 }
+  ];
+
+  const catNodes = {};
+  categories.forEach(cat => {
+    const d = 180;
+    const x = Math.cos(cat.angle)*d, y = Math.sin(cat.angle)*d;
+    const node = {
+      id:'cat:'+cat.name, label:cat.name, group:'category', r:14,
+      x:x, y:y, z:(Math.random()-0.5)*60, vx:0, vy:0, vz:0
     };
-    const sn = 5+Math.floor(Math.random()*9);
-    for(let k=0;k<sn;k++){
-      fn.sat.push({
-        a:Math.random()*6.2832, d:14+Math.random()*34,
-        s:0.6+Math.random()*1.1, tw:Math.random()*6.2832
-      });
-    }
-    brainNodes.push(fn);
-    brainLinks.push({ s:cats[f.category], t:nid });
+    brainNodes.push(node);
+    catNodes[cat.name] = node;
+    // Zentral mit Kategorie verbunden
+    brainLinks.push({ s:'center', t:node.id, strong:true });
+  });
+
+  // Fakten-Knoten aus data.brain
+  data.brain.forEach((f, idx) => {
+    const cat = catNodes[f.category];
+    if(!cat) return;
+    const angle = Math.random()*6.283;
+    const dist = 80+Math.random()*60;
+    const x = cat.x+Math.cos(angle)*dist;
+    const y = cat.y+Math.sin(angle)*dist;
+    const z = cat.z+(Math.random()-0.5)*80;
+    const node = {
+      id:'f'+idx, label:f.value, group:'fact', r:10,
+      x:x, y:y, z:z, vx:0, vy:0, vz:0
+    };
+    brainNodes.push(node);
+    // Fakt mit seiner Kategorie verbunden
+    brainLinks.push({ s:cat.id, t:node.id });
+  });
+
+  // Zusätzliche Verbindungen zwischen Kategorien (neuronale Pfade)
+  // z.B. Freunde ↔ Hobbys (treffe mich beim Hobby)
+  const extraLinks = [
+    ['cat:Freunde', 'cat:Hobbys'],
+    ['cat:Schule', 'cat:Freizeit'],
+    ['cat:Interessen', 'cat:Ziele']
+  ];
+  extraLinks.forEach(([s, t]) => {
+    brainLinks.push({ s, t, weak:true });
   });
 }
+
+// Stub for compatibility
+function buildBrain(){ /* Neural network already built */ }
 
 function brainStep(){
   const byId = {};
   brainNodes.forEach(n => byId[n.id]=n);
 
-  // Force-directed physics
+  // 3D Force-directed physics
   for(let i=0;i<brainNodes.length;i++){
     const a = brainNodes[i];
     for(let j=i+1;j<brainNodes.length;j++){
       const b = brainNodes[j];
-      let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
-      if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); }
-      const d=Math.sqrt(d2), f=2600/d2, fx=(dx/d)*f, fy=(dy/d)*f;
-      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+      let dx=a.x-b.x, dy=a.y-b.y, dz=a.z-b.z;
+      let d2=dx*dx+dy*dy+dz*dz;
+      if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); dz=Math.random(); }
+      const d=Math.sqrt(d2), f=3000/d2;
+      const fx=(dx/d)*f, fy=(dy/d)*f, fz=(dz/d)*f;
+      a.vx+=fx; a.vy+=fy; a.vz+=fz;
+      b.vx-=fx; b.vy-=fy; b.vz-=fz;
     }
   }
 
@@ -1127,173 +1075,197 @@ function brainStep(){
   brainLinks.forEach(l => {
     const a=byId[l.s], b=byId[l.t];
     if(!a||!b) return;
-    const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
-    const target=(b.group==='fact')?74:122, f=(d-target)*0.02, fx=(dx/d)*f, fy=(dy/d)*f;
-    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+    const dx=b.x-a.x, dy=b.y-a.y, dz=b.z-a.z;
+    const d=Math.sqrt(dx*dx+dy*dy+dz*dz)||0.01;
+    const target=l.strong?100:80, f=(d-target)*0.015;
+    const fx=(dx/d)*f, fy=(dy/d)*f, fz=(dz/d)*f;
+    a.vx+=fx; a.vy+=fy; a.vz+=fz;
+    b.vx-=fx; b.vy-=fy; b.vz-=fz;
   });
 
   // Damping + centering
   brainNodes.forEach(n => {
-    if(n.fixed){ n.x=0; n.y=0; n.vx=0; n.vy=0; return; }
-    n.vx += (0-n.x)*0.003;
-    n.vy += (0-n.y)*0.003;
-    n.vx *= 0.86;
-    n.vy *= 0.86;
-    n.x += Math.max(-18, Math.min(18, n.vx));
-    n.y += Math.max(-18, Math.min(18, n.vy));
+    if(n.fixed){ n.x=0; n.y=0; n.z=0; n.vx=0; n.vy=0; n.vz=0; return; }
+    n.vx += (0-n.x)*0.002;
+    n.vy += (0-n.y)*0.002;
+    n.vz += (0-n.z)*0.001;
+    n.vx *= 0.88; n.vy *= 0.88; n.vz *= 0.88;
+    n.x += Math.max(-20, Math.min(20, n.vx));
+    n.y += Math.max(-20, Math.min(20, n.vy));
+    n.z += Math.max(-30, Math.min(30, n.vz));
+  });
+
+  // Particles along links
+  if(Math.random()<0.1){
+    brainLinks.forEach(l => {
+      if(Math.random()>0.3) return;
+      const a=byId[l.s], b=byId[l.t];
+      if(!a||!b) return;
+      particles.push({
+        sx:a.x, sy:a.y, sz:a.z,
+        tx:b.x, ty:b.y, tz:b.z,
+        progress:0, speed:0.02+Math.random()*0.03
+      });
+    });
+  }
+
+  // Update particles
+  particles = particles.filter(p => {
+    p.progress += p.speed;
+    return p.progress < 1;
   });
 }
 
-// V7 Heavy-Komplexität Render (Ringe + Nebulae + Bursts + massive Struktur)
+// NEURAL NETWORK 3D RENDER
 function brainDraw(){
   const ctx = brainCtx; if(!ctx) return;
   brainTime += 0.016;
   ctx.clearRect(0, 0, brainW, brainH);
 
-  const base = brainColor(), white='#ffffff', pink='#ff6584';
-  const rot = brainTime*0.005, csr = Math.cos(rot), snr = Math.sin(rot);
-  const W2S = (x, y) => [x+brainW/2, y+brainH/2];
-  const RW = (x, y) => W2S(x*csr-y*snr, x*snr+y*csr);
-  const lw = 1.2;
+  brainStep(); // Physics
 
-  // Render Nebeln (soft background)
-  galaxy.nebulae.forEach(n => {
-    const p = RW(n.x, n.y);
-    const grad = ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],n.r);
-    grad.addColorStop(0, hexA(base, n.al*0.8));
-    grad.addColorStop(0.6, hexA(base, n.al*0.3));
-    grad.addColorStop(1, hexA(base, 0));
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(p[0], p[1], n.r, 0, 6.283);
-    ctx.fill();
-  });
+  // Colors
+  const col = brainColor();
+  const rgb = hexToRgb(col) || {r:91, g:140, b:255};
+  const colorStr = `rgb(${rgb.r||91},${rgb.g||140},${rgb.b||255})`;
+  const cx = brainW/2, cy = brainH/2;
 
-  // Orbit Ringe
-  const c0 = W2S(0, 0);
-  ctx.strokeStyle = hexA(base, 0.18);
-  ctx.lineWidth = lw;
-  galaxy.rings.forEach(rg => {
-    ctx.beginPath();
-    ctx.ellipse(c0[0], c0[1], rg.rx, rg.ry, rg.rot, 0, 6.283);
-    ctx.stroke();
-  });
+  // 3D Perspective transform
+  const rotX = brainTime*0.0008;
+  const rotY = brainTime*0.0012;
+  const P3D = (x,y,z) => {
+    let x2=x, y2=y, z2=z;
+    const cy2=Math.cos(rotX), sy2=Math.sin(rotX);
+    const ty=y2*cy2-z2*sy2; const tz=y2*sy2+z2*cy2;
+    y2=ty; z2=tz;
+    const cx2=Math.cos(rotY), sx2=Math.sin(rotY);
+    const tx=x2*cx2+z2*sx2; const tz2=-x2*sx2+z2*cx2;
+    x2=tx; z2=tz2;
+    const scale=300/(300+z2*0.5);
+    return { sx:cx+x2*scale, sy:cy+y2*scale, scale:scale, z:z2 };
+  };
 
-  // Kern-Strahlen
-  galaxy.rays.forEach(r => {
-    const a = r.a + rot;
-    const p1 = W2S(Math.cos(a)*8, Math.sin(a)*8);
-    const p2 = W2S(Math.cos(a)*r.len, Math.sin(a)*r.len);
-    ctx.strokeStyle = hexA(white, r.al*0.8);
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(p1[0], p1[1]);
-    ctx.lineTo(p2[0], p2[1]);
-    ctx.stroke();
-  });
+  // Collect all objects
+  const objects = [];
 
-  // Cluster-Links
-  ctx.lineWidth = lw*0.6;
-  galaxy.links.forEach(l => {
-    const p1 = RW(l.x1, l.y1), p2 = RW(l.x2, l.y2);
-    ctx.strokeStyle = hexA(base, l.al*0.8);
-    ctx.beginPath();
-    ctx.moveTo(p1[0], p1[1]);
-    ctx.lineTo(p2[0], p2[1]);
-    ctx.stroke();
-  });
+  // Center cube (3D-Würfel)
+  centerCube.rot += 0.008;
+  const cubeVertices = [
+    [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],
+    [-1,-1,1], [1,-1,1], [1,1,1], [-1,1,1]
+  ];
+  const cubeSize = 30;
+  const vertices = cubeVertices.map(v => P3D(v[0]*cubeSize, v[1]*cubeSize, v[2]*cubeSize));
+  const cubeEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
 
-  // Sternenstaub
-  galaxy.dust.forEach((d, i) => {
-    const p = RW(d.x, d.y);
-    const tw = 0.5 + 0.5*Math.sin(brainTime*1.3+d.tw);
-    dot(ctx, p[0], p[1], Math.max(0.3, d.s), base, 0.10+0.25*tw);
-  });
-
-  // Cluster-Punkte
-  galaxy.dots.forEach(d => {
-    const p = RW(d.x, d.y);
-    const tw = 0.5 + 0.5*Math.sin(brainTime*1.6+d.tw);
-    dot(ctx, p[0], p[1], Math.max(0.4, d.s), d.white ? white : base, (d.white?0.6:0.36)+0.35*tw);
-  });
-
-  // Dandelion Bursts (pink)
-  galaxy.bursts.forEach(b => {
-    const bp = RW(b.x, b.y);
-    ctx.lineWidth = lw*0.6;
-    b.rays.forEach(r => {
-      const a = r.a + rot;
-      const pe = RW(b.x+Math.cos(a)*r.l, b.y+Math.sin(a)*r.l);
-      ctx.strokeStyle = hexA(pink, 0.14);
-      ctx.beginPath();
-      ctx.moveTo(bp[0], bp[1]);
-      ctx.lineTo(pe[0], pe[1]);
-      ctx.stroke();
-      const tw = 0.5 + 0.5*Math.sin(brainTime*2+r.tw);
-      dot(ctx, pe[0], pe[1], Math.max(0.4, r.s), pink, 0.32+0.4*tw);
+  cubeEdges.forEach(([a,b]) => {
+    objects.push({
+      type:'line', x1:vertices[a].sx, y1:vertices[a].sy, x2:vertices[b].sx, y2:vertices[b].sy,
+      z:(vertices[a].z+vertices[b].z)/2, color:colorStr, opacity:0.6, width:1.5
     });
-    dot(ctx, bp[0], bp[1], Math.max(0.8, 1.6), '#ffd3dc', 0.75);
   });
 
-  // ===== KNOWLEDGE NODES (Interessen, Hobbys, Ziele) =====
-  // Physics step
-  brainStep();
+  vertices.forEach(v => {
+    objects.push({
+      type:'dot', sx:v.sx, sy:v.sy, z:v.z, r:2, color:'#ffffff', opacity:0.8
+    });
+  });
 
-  // Link-Verbindungen (fein)
+  // Links (glowing lines)
   const byId = {};
   brainNodes.forEach(n => byId[n.id]=n);
-  ctx.lineWidth = 0.6;
   brainLinks.forEach(l => {
-    const a = byId[l.s], b = byId[l.t];
+    const a=byId[l.s], b=byId[l.t];
     if(!a||!b) return;
-    const pa = W2S(a.x, a.y), pb = W2S(b.x, b.y);
-    ctx.strokeStyle = hexA(base, 0.35);
-    ctx.beginPath();
-    ctx.moveTo(pa[0], pa[1]);
-    ctx.lineTo(pb[0], pb[1]);
-    ctx.stroke();
-  });
-
-  // Satelliten um Wissenknoten (kleine Pusteblumen)
-  ctx.lineWidth = 0.5;
-  brainNodes.forEach(n => {
-    if(!n.sat) return;
-    const pn = W2S(n.x, n.y);
-    n.sat.forEach(s => {
-      const a = s.a + brainTime*0.12;
-      const p = W2S(n.x+Math.cos(a)*s.d, n.y+Math.sin(a)*s.d);
-      ctx.strokeStyle = hexA(base, 0.08);
-      ctx.beginPath();
-      ctx.moveTo(pn[0], pn[1]);
-      ctx.lineTo(p[0], p[1]);
-      ctx.stroke();
-      const tw = 0.5 + 0.5*Math.sin(brainTime*1.8+s.tw);
-      dot(ctx, p[0], p[1], Math.max(0.4, s.s*0.8), base, 0.25+0.25*tw);
+    const p1=P3D(a.x,a.y,a.z), p2=P3D(b.x,b.y,b.z);
+    objects.push({
+      type:'line', x1:p1.sx, y1:p1.sy, x2:p2.sx, y2:p2.sy,
+      z:(p1.z+p2.z)/2, color:colorStr, opacity:l.strong?0.5:0.25, width:l.strong?1.5:0.8
     });
   });
 
-  // Knoten selbst (hell)
+  // Particles
+  particles.forEach(p => {
+    const ix=p.sx+(p.tx-p.sx)*p.progress;
+    const iy=p.sy+(p.ty-p.sy)*p.progress;
+    const iz=p.sz+(p.tz-p.sz)*p.progress;
+    const pp=P3D(ix,iy,iz);
+    objects.push({
+      type:'particle', sx:pp.sx, sy:pp.sy, z:pp.z, r:3, color:'#ffffff', opacity:1-p.progress
+    });
+  });
+
+  // Nodes
   brainNodes.forEach(n => {
-    const p = W2S(n.x, n.y);
-    const r = Math.max(2, n.r);
-    if(n.group === 'center'){
-      dot(ctx, p[0], p[1], r*3, base, 0.7);
-      dot(ctx, p[0], p[1], r*1.5, white, 0.95);
-    } else if(n.group === 'category'){
-      dot(ctx, p[0], p[1], r*1.7, white, 0.85);
-    } else {
-      dot(ctx, p[0], p[1], r*1.8, base, 0.8);
+    const p=P3D(n.x,n.y,n.z);
+    const r=n.r*p.scale;
+    objects.push({
+      type:'node', sx:p.sx, sy:p.sy, z:p.z, r:r, label:n.label, group:n.group,
+      color:colorStr, isHover:hoverNode===n
+    });
+  });
+
+  // Sort by depth
+  objects.sort((a,b) => a.z-b.z);
+
+  // Render
+  objects.forEach(obj => {
+    ctx.globalAlpha = obj.opacity || 1;
+    if(obj.type==='line'){
+      ctx.strokeStyle = obj.color;
+      ctx.lineWidth = obj.width;
+      ctx.beginPath();
+      ctx.moveTo(obj.x1, obj.y1);
+      ctx.lineTo(obj.x2, obj.y2);
+      ctx.stroke();
+    } else if(obj.type==='dot'){
+      const grad=ctx.createRadialGradient(obj.sx,obj.sy,0,obj.sx,obj.sy,obj.r*2);
+      grad.addColorStop(0,'rgba(255,255,255,0.8)');
+      grad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.arc(obj.sx,obj.sy,obj.r*2,0,6.283);
+      ctx.fill();
+    } else if(obj.type==='particle'){
+      ctx.fillStyle = obj.color;
+      ctx.beginPath();
+      ctx.arc(obj.sx,obj.sy,obj.r,0,6.283);
+      ctx.fill();
+    } else if(obj.type==='node'){
+      const sz=obj.r;
+      if(obj.group==='center'){
+        const grad=ctx.createRadialGradient(obj.sx,obj.sy,0,obj.sx,obj.sy,sz*2);
+        grad.addColorStop(0,'rgba(255,255,255,0.9)');
+        grad.addColorStop(0.4,obj.color);
+        grad.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath();
+        ctx.arc(obj.sx,obj.sy,sz*2,0,6.283);
+        ctx.fill();
+      } else {
+        const grad=ctx.createRadialGradient(obj.sx,obj.sy,0,obj.sx,obj.sy,sz*1.5);
+        grad.addColorStop(0,'rgba(255,255,255,0.7)');
+        grad.addColorStop(0.5,obj.color);
+        grad.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath();
+        ctx.arc(obj.sx,obj.sy,sz*1.5,0,6.283);
+        ctx.fill();
+      }
+      // Label on hover
+      if(obj.isHover && obj.label){
+        ctx.fillStyle='#fff';
+        ctx.font='bold 12px Arial';
+        ctx.textAlign='center';
+        ctx.fillText(obj.label, obj.sx, obj.sy-sz-10);
+      }
     }
   });
 
-  // Central glow
-  dot(ctx, brainW/2, brainH/2, 18, base, 0.8);
-  dot(ctx, brainW/2, brainH/2, 9, white, 1);
-
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha=1;
 }
 
-// Glow-Sprite Helper
+// Glow-Sprite Helper (for compatibility)
 const spriteCache = {};
 function hexA(hex, a){ const m = hex.replace('#','').match(/.{2}/g)||['5b','8c','ff']; const rgb = m.map(x=>parseInt(x,16)); return 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')'; }
 function glowSprite(color){
@@ -1334,9 +1306,25 @@ function renderBrain(){
   if(!brainCanvas) return;
   brainCtx = brainCanvas.getContext('2d');
   resizeBrain();
-  if(!galaxy.dots.length) buildGalaxy();
-  buildBrain(); // Always rebuild knowledge nodes
+  buildNeuralNetwork();
   if(!brainAnim) brainLoop();
+
+  // Hover detection (simplified)
+  if(brainCanvas && !brainCanvas._hoverSet){
+    brainCanvas._hoverSet = true;
+    brainCanvas.addEventListener('mousemove', e => {
+      const rect = brainCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      hoverNode = null;
+      brainNodes.forEach(n => {
+        // Simple 2D distance for hover (nodes in range ~50-100px)
+        const dx = n.x - (mx-brainW/2)/100;
+        const dy = n.y - (my-brainH/2)/100;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < 80) hoverNode = n;
+      });
+    });
+  }
 }
 function addFactFromUI(){
   const cat=document.getElementById('factCat').value;
