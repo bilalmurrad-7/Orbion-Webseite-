@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big Brain — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -244,10 +245,11 @@
   .lock-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--text-dim); margin-top: 16px; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
 
-  /* Gehirn-Netzwerk Stage + Vollbild */
-  #brainStage { position: relative; background: radial-gradient(circle at 50% 45%, #16191e 0%, #0e1013 70%); border-top: 1px solid var(--border); }
+  /* Gehirn-Netzwerk Stage + Vollbild (WebGL 3D) */
+  #brainStage { position: relative; background: #000; border-top: 1px solid var(--border); }
   #brainStage.fs { position: fixed; inset: 0; z-index: 200; border: none; border-radius: 0; }
-  #brainStage.fs #brainCanvas { height: 100vh !important; }
+  #brainStage.fs #brainCanvas { width: 100vw !important; height: 100vh !important; }
+  #brainCanvas { display: block; width: 100%; height: 480px; }
   #brainClose { display: none; }
   #brainStage.fs #brainClose { display: inline-flex; position: fixed; top: 16px; right: 16px; z-index: 201; }
   #brainStage.fs .brain-tip { bottom: 16px; }
@@ -966,262 +968,218 @@ function saveProfile() {
   save(); renderProfile(); renderAnalytics(); if (brainCanvas) buildBrain(); toast('Profil gespeichert ✔');
 }
 
-// ---------------- Big Brain Netzwerk (Glow / verschiebbare Map) ----------------
+// ---------------- Big Brain Netzwerk 3D (Three.js WebGL) ----------------
 let brainNodes = [], brainLinks = [];
-let galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
-let brainAnim = null, brainCanvas = null, brainCtx = null, brainDrag = null;
-let panning = false, panStart = null, hoverNode = null, brainW = 0, brainH = 0, brainTime = 0;
-const cam = { x: 0, y: 0, scale: 1 };
+let brainAnim = null, brainCanvas = null, brainTime = 0;
+let scene = null, camera = null, renderer = null, controls = null;
+let stars = [], rings = [], pyramids = [], nebulaClouds = [], glowSpheres = [];
 function brainColor() { return data.settings.brainColor || '#5b8cff'; }
-function W2S(x,y){ return [x*cam.scale+cam.x, y*cam.scale+cam.y]; }
-function S2W(x,y){ return [(x-cam.x)/cam.scale, (y-cam.y)/cam.scale]; }
+function hexToRgb(hex) { const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255; return [r,g,b]; }
 
-// Prozedurale Galaxie: Cluster-Hubs mit Blättern (Obsidian-Dichte),
-// pinke "Pusteblumen", Nebel, Ringe und Kern-Strahlen (Galaxie-Look)
-function buildGalaxy(){
+// 3D Galaxie mit Stars, Rings, Pyramiden und Nebulae
+function build3DGalaxy(){
+  // Clear existing objects
+  stars = []; rings = []; pyramids = []; nebulaClouds = []; glowSpheres = [];
+
   let seed = 20260718;
   const R = () => { seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
-  galaxy = { nebulae:[], rings:[], rays:[], links:[], dots:[], bursts:[], dust:[] };
-  for(let i=0;i<11;i++){ const a=R()*6.283, d=120+R()*780;
-    galaxy.nebulae.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, r:50+R()*115, al:0.10+R()*0.13 }); }
-  galaxy.rings = [ {rx:300,ry:112,rot:-0.35}, {rx:520,ry:198,rot:-0.35}, {rx:780,ry:305,rot:-0.35} ];
-  for(let i=0;i<46;i++){ galaxy.rays.push({ a:R()*6.283, len:90+R()*400, al:0.04+R()*0.10 }); }
-  const hubs=[];
-  for(let i=0;i<30;i++){
-    const a=R()*6.283, d=170+R()*780;
-    const h={ x:Math.cos(a)*d, y:Math.sin(a)*d, s:2.2+R()*2.6 };
-    hubs.push(h);
-    galaxy.dots.push({ x:h.x, y:h.y, s:h.s, white:true, tw:R()*6.28 });
-    const nl=9+Math.floor(R()*24), full=R()<0.5, spread=full?6.283:(0.8+R()*2.2), start=R()*6.283;
-    for(let j=0;j<nl;j++){
-      const la = full ? R()*6.283 : start+(j/nl-0.5)*spread;
-      const ld = 16+R()*62;
-      const lx = h.x+Math.cos(la)*ld, ly = h.y+Math.sin(la)*ld;
-      galaxy.dots.push({ x:lx, y:ly, s:0.7+R()*1.3, white:R()<0.25, tw:R()*6.28 });
-      galaxy.links.push({ x1:h.x, y1:h.y, x2:lx, y2:ly, al:0.11 });
-      if(R()<0.20){
-        const sa=la+(R()-0.5), sd=10+R()*28, sx=lx+Math.cos(sa)*sd, sy=ly+Math.sin(sa)*sd;
-        galaxy.dots.push({ x:sx, y:sy, s:0.6+R(), white:false, tw:R()*6.28 });
-        galaxy.links.push({ x1:lx, y1:ly, x2:sx, y2:sy, al:0.07 });
-      }
+
+  const color = brainColor();
+  const rgb = hexToRgb(color);
+  const col = new THREE.Color(rgb[0], rgb[1], rgb[2]);
+
+  // Nebula clouds (soft particles)
+  for(let i=0;i<15;i++){
+    const a = R()*Math.PI*2, d = 100+R()*600;
+    const x = Math.cos(a)*d, y = (R()-0.5)*400, z = Math.sin(a)*d;
+    const size = 80+R()*200;
+    const geom = new THREE.BufferGeometry();
+    const positions = [];
+    for(let p=0;p<200;p++){
+      positions.push((R()-0.5)*size, (R()-0.5)*size, (R()-0.5)*size);
     }
+    geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+    const mat = new THREE.PointsMaterial({ color: col, size: 2+R()*3, transparent: true, opacity: 0.08+R()*0.12, sizeAttenuation: true });
+    const cloud = new THREE.Points(geom, mat);
+    cloud.position.set(x, y, z);
+    scene.add(cloud);
+    nebulaClouds.push({ obj: cloud, rotX: R()*6.283, rotY: R()*6.283, rotZ: R()*6.283 });
   }
-  for(let i=0;i<hubs.length;i++){
-    const ds=[];
-    for(let j=0;j<hubs.length;j++){ if(i===j) continue;
-      const dx=hubs[i].x-hubs[j].x, dy=hubs[i].y-hubs[j].y; ds.push([dx*dx+dy*dy,j]); }
-    ds.sort((a,b)=>a[0]-b[0]);
-    for(let k=0;k<2;k++){ const j=ds[k][1];
-      if(i<j) galaxy.links.push({ x1:hubs[i].x, y1:hubs[i].y, x2:hubs[j].x, y2:hubs[j].y, al:0.06 }); }
-  }
-  for(let i=0;i<9;i++){
-    const a=R()*6.283, d=260+R()*660;
-    const b={ x:Math.cos(a)*d, y:Math.sin(a)*d, rays:[] };
-    const nr=16+Math.floor(R()*26);
-    for(let j=0;j<nr;j++) b.rays.push({ a:R()*6.283, l:26+R()*74, s:0.8+R()*1.4, tw:R()*6.28 });
-    galaxy.bursts.push(b);
-  }
-  for(let i=0;i<520;i++){ const a=R()*6.283, d=Math.pow(R(),0.7)*980;
-    galaxy.dust.push({ x:Math.cos(a)*d, y:Math.sin(a)*d, s:0.4+R()*0.9, tw:R()*6.28 }); }
-}
 
-function buildBrain() {
-  const prev = {}; brainNodes.forEach(n => prev[n.id] = { x:n.x, y:n.y });
-  brainNodes = []; brainLinks = [];
-  brainNodes.push({ id:'me', label:(data.profile.name||'Ich'), group:'center', r:16, x:0, y:0, vx:0, vy:0, fixed:true });
-  const cats = {};
-  data.brain.forEach((f, idx) => {
-    if (!cats[f.category]) {
-      const cid = 'cat:'+f.category; cats[f.category] = cid; const p = prev[cid];
-      brainNodes.push({ id:cid, label:f.category, group:'category', cat:f.category, r:9,
-        x:p?p.x:(Math.random()-.5)*180, y:p?p.y:(Math.random()-.5)*180, vx:0, vy:0 });
-      brainLinks.push({ s:'me', t:cid });
+  // Rings (rotating)
+  const ringRadii = [250, 420, 650];
+  const ringMats = [0.15, 0.12, 0.1];
+  ringRadii.forEach((r, idx) => {
+    const geom = new THREE.BufferGeometry();
+    const pts = [];
+    for(let i=0;i<200;i++){
+      const angle = (i/200)*Math.PI*2;
+      pts.push(Math.cos(angle)*r, (R()-0.5)*20, Math.sin(angle)*r);
     }
-    const nid = 'f'+idx; const p = prev[nid];
-    const fn = { id:nid, label:f.value, group:'fact', cat:f.category, factIndex:idx, r:6,
-      x:p?p.x:(Math.random()-.5)*340, y:p?p.y:(Math.random()-.5)*340, vx:0, vy:0, sat:[] };
-    const sn = 5+Math.floor(Math.random()*9);
-    for(let k=0;k<sn;k++) fn.sat.push({ a:Math.random()*6.2832, d:14+Math.random()*34, s:0.6+Math.random()*1.1, tw:Math.random()*6.2832 });
-    brainNodes.push(fn);
-    brainLinks.push({ s:cats[f.category], t:nid });
+    geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+    const mat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: ringMats[idx] });
+    const line = new THREE.Line(geom, mat);
+    line.rotation.x = -0.3+R()*0.1;
+    line.rotation.z = -0.3+R()*0.1;
+    scene.add(line);
+    rings.push({ obj: line, speed: 0.001+R()*0.003 });
   });
-}
-function brainStep() {
-  const byId = {}; brainNodes.forEach(n => byId[n.id]=n);
-  for (let i=0;i<brainNodes.length;i++){ const a=brainNodes[i];
-    for (let j=i+1;j<brainNodes.length;j++){ const b=brainNodes[j];
-      let dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
-      if(d2<0.01){ d2=0.01; dx=Math.random(); dy=Math.random(); }
-      const d=Math.sqrt(d2), f=2600/d2, fx=(dx/d)*f, fy=(dy/d)*f;
-      a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy; } }
-  brainLinks.forEach(l=>{ const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
-    const dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||0.01;
-    const target=(b.group==='fact')?74:122, f=(d-target)*0.02, fx=(dx/d)*f, fy=(dy/d)*f;
-    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy; });
-  brainNodes.forEach(n=>{
-    if(n.fixed){ n.x=0; n.y=0; n.vx=0; n.vy=0; return; }
-    if(n===brainDrag){ n.vx=0; n.vy=0; return; }
-    n.vx += (0-n.x)*0.003; n.vy += (0-n.y)*0.003;
-    n.vx*=0.86; n.vy*=0.86;
-    n.x += Math.max(-18,Math.min(18,n.vx)); n.y += Math.max(-18,Math.min(18,n.vy));
-  });
-}
-function brainRoundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
-// Glow-Sprites (vorgerenderte Verläufe = viele Partikel ohne Ruckeln)
-const spriteCache = {};
-function hexA(hex,a){ const m=hex.replace('#','').match(/.{2}/g)||['5b','8c','ff']; const rgb=m.map(x=>parseInt(x,16)); return 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')'; }
-function glowSprite(color){
-  if(spriteCache[color]) return spriteCache[color];
-  const c=document.createElement('canvas'); c.width=c.height=64;
-  const g=c.getContext('2d'), gr=g.createRadialGradient(32,32,0,32,32,32);
-  gr.addColorStop(0,'rgba(255,255,255,0.95)');
-  gr.addColorStop(0.22,hexA(color,0.9));
-  gr.addColorStop(0.55,hexA(color,0.28));
-  gr.addColorStop(1,hexA(color,0));
-  g.fillStyle=gr; g.fillRect(0,0,64,64);
-  return spriteCache[color]=c;
-}
-function nebSprite(color){
-  const key='neb'+color; if(spriteCache[key]) return spriteCache[key];
-  const c=document.createElement('canvas'); c.width=c.height=128;
-  const g=c.getContext('2d'), gr=g.createRadialGradient(64,64,0,64,64,64);
-  gr.addColorStop(0,hexA(color,0.42)); gr.addColorStop(0.5,hexA(color,0.16)); gr.addColorStop(1,hexA(color,0));
-  g.fillStyle=gr; g.fillRect(0,0,128,128);
-  return spriteCache[key]=c;
-}
-function dot(ctx,x,y,r,color,alpha){
-  if(alpha<=0) return;
-  ctx.globalAlpha=Math.min(1,alpha);
-  const s=r*4; ctx.drawImage(glowSprite(color), x-s/2, y-s/2, s, s);
-  ctx.globalAlpha=1;
+  // Stars (various sizes - different element types)
+  const starCount = 200+Math.floor(R()*100);
+  for(let i=0;i<starCount;i++){
+    const a = R()*Math.PI*2, b = Math.acos(R()*2-1);
+    const r = 150+Math.pow(R(),0.6)*800;
+    const x = Math.sin(b)*Math.cos(a)*r, y = Math.sin(b)*Math.sin(a)*r, z = Math.cos(b)*r;
+    const size = 0.5+R()*2;
+    const opacity = 0.3+R()*0.7;
+
+    const geom = new THREE.IcosahedronGeometry(size*0.5, 2);
+    const mat = new THREE.MeshPhongMaterial({ color: col, emissive: new THREE.Color(rgb[0]*0.5, rgb[1]*0.5, rgb[2]*0.5), wireframe: false });
+    const star = new THREE.Mesh(geom, mat);
+    star.position.set(x, y, z);
+    star.scale.set(1+R()*0.5, 1+R()*0.5, 1+R()*0.5);
+    scene.add(star);
+    stars.push({ obj: star, rotSpeedX: (R()-0.5)*0.02, rotSpeedY: (R()-0.5)*0.02, twinklePhase: R()*Math.PI*2 });
+  }
+
+  // Pyramids/Crystals (geometric accent elements)
+  const pyramidCount = 40+Math.floor(R()*30);
+  for(let i=0;i<pyramidCount;i++){
+    const a = R()*Math.PI*2, d = 200+R()*700;
+    const x = Math.cos(a)*d, y = (R()-0.5)*300, z = Math.sin(a)*d;
+
+    const geom = new THREE.TetrahedronGeometry(8+R()*12, 0);
+    const mat = new THREE.MeshPhongMaterial({
+      color: col,
+      emissive: new THREE.Color(rgb[0]*0.3, rgb[1]*0.3, rgb[2]*0.3),
+      transparent: true,
+      opacity: 0.6+R()*0.3,
+      wireframe: R()<0.3
+    });
+    const pyr = new THREE.Mesh(geom, mat);
+    pyr.position.set(x, y, z);
+    pyr.rotation.set(R()*Math.PI, R()*Math.PI, R()*Math.PI);
+    scene.add(pyr);
+    pyramids.push({ obj: pyr, rotX: R()*0.01, rotY: R()*0.01, rotZ: R()*0.01 });
+  }
+
+  // Central glow sphere
+  const cGeom = new THREE.SphereGeometry(30, 32, 32);
+  const cMat = new THREE.MeshPhongMaterial({ color: col, emissive: col, wireframe: false });
+  const coreSphere = new THREE.Mesh(cGeom, cMat);
+  scene.add(coreSphere);
+  glowSpheres.push({ obj: coreSphere, scale: 1, targetScale: 1.2, phase: 0 });
 }
 
-function brainDraw() {
-  const ctx=brainCtx; if(!ctx) return;
-  brainTime+=0.016;
-  ctx.clearRect(0,0,brainW,brainH);
-  const base=brainColor(), white='#ffffff', pink='#ff6584';
-  const rot=brainTime*0.006, csr=Math.cos(rot), snr=Math.sin(rot);
-  const RW=(x,y)=>W2S(x*csr-y*snr, x*snr+y*csr);
-  const lw=Math.max(0.4,Math.min(2,cam.scale));
-  // Nebel (weiche Wolken)
-  galaxy.nebulae.forEach(n=>{ const p=RW(n.x,n.y), r=n.r*cam.scale;
-    ctx.globalAlpha=n.al; ctx.drawImage(nebSprite(base), p[0]-r, p[1]-r, r*2, r*2); ctx.globalAlpha=1; });
-  // Orbit-Ringe
-  const c0=W2S(0,0);
-  ctx.strokeStyle=hexA(base,0.15); ctx.lineWidth=lw;
-  galaxy.rings.forEach(rg=>{ ctx.beginPath();
-    ctx.ellipse(c0[0],c0[1],rg.rx*cam.scale,rg.ry*cam.scale,rg.rot+rot*0.4,0,6.2832); ctx.stroke(); });
-  // Kern-Strahlen
-  galaxy.rays.forEach(r=>{ const a=r.a+rot;
-    const p1=W2S(Math.cos(a)*8,Math.sin(a)*8), p2=W2S(Math.cos(a)*r.len,Math.sin(a)*r.len);
-    ctx.strokeStyle='rgba(255,255,255,'+r.al+')'; ctx.beginPath();
-    ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke(); });
-  // Cluster-Verbindungen
-  ctx.lineWidth=lw*0.8;
-  galaxy.links.forEach(l=>{ const p1=RW(l.x1,l.y1), p2=RW(l.x2,l.y2);
-    ctx.strokeStyle=hexA(base,l.al); ctx.beginPath();
-    ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke(); });
-  // Sternenstaub
-  galaxy.dust.forEach((d,i)=>{ if(cam.scale<0.5 && (i&1)) return;
-    const p=RW(d.x,d.y), tw=0.5+0.5*Math.sin(brainTime*1.3+d.tw);
-    dot(ctx,p[0],p[1],Math.max(0.4,d.s*cam.scale),base,0.13+0.2*tw); });
-  // Cluster-Punkte
-  galaxy.dots.forEach(d=>{ const p=RW(d.x,d.y), tw=0.5+0.5*Math.sin(brainTime*1.6+d.tw);
-    dot(ctx,p[0],p[1],Math.max(0.5,d.s*cam.scale), d.white?white:base, (d.white?0.55:0.34)+0.3*tw); });
-  // Pusteblumen (pink)
-  galaxy.bursts.forEach(b=>{ const bp=RW(b.x,b.y);
-    ctx.lineWidth=lw*0.8;
-    b.rays.forEach(r=>{ const a=r.a+rot;
-      const pe=RW(b.x+Math.cos(a)*r.l, b.y+Math.sin(a)*r.l);
-      ctx.strokeStyle=hexA(pink,0.12); ctx.beginPath();
-      ctx.moveTo(bp[0],bp[1]); ctx.lineTo(pe[0],pe[1]); ctx.stroke();
-      const tw=0.5+0.5*Math.sin(brainTime*2+r.tw);
-      dot(ctx,pe[0],pe[1],Math.max(0.5,r.s*cam.scale),pink,0.3+0.35*tw); });
-    dot(ctx,bp[0],bp[1],Math.max(1,2*cam.scale),'#ffd3dc',0.7); });
-  // Echte Verbindungen
-  const byId={}; brainNodes.forEach(n=>byId[n.id]=n);
-  ctx.lineWidth=lw;
-  brainLinks.forEach(l=>{ const a=byId[l.s], b=byId[l.t]; if(!a||!b) return;
-    const pa=W2S(a.x,a.y), pb=W2S(b.x,b.y), hot=hoverNode&&(hoverNode===a||hoverNode===b);
-    ctx.strokeStyle=hot?'rgba(255,255,255,0.7)':hexA(base,0.42);
-    ctx.beginPath(); ctx.moveTo(pa[0],pa[1]); ctx.lineTo(pb[0],pb[1]); ctx.stroke(); });
-  // Satelliten um echte Wissens-Knoten (kleine eigene "Pusteblume")
-  ctx.lineWidth=lw*0.7;
-  brainNodes.forEach(n=>{ if(!n.sat) return;
-    const pn=W2S(n.x,n.y);
-    n.sat.forEach(s=>{ const a=s.a+brainTime*0.12;
-      const p=W2S(n.x+Math.cos(a)*s.d, n.y+Math.sin(a)*s.d);
-      ctx.strokeStyle=hexA(base,0.10); ctx.beginPath();
-      ctx.moveTo(pn[0],pn[1]); ctx.lineTo(p[0],p[1]); ctx.stroke();
-      const tw=0.5+0.5*Math.sin(brainTime*1.8+s.tw);
-      dot(ctx,p[0],p[1],Math.max(0.5,s.s*cam.scale),base,0.3+0.3*tw); }); });
-  // Echte Knoten (hell obendrauf)
-  brainNodes.forEach(n=>{ const p=W2S(n.x,n.y), r=Math.max(2,n.r*cam.scale), hot=hoverNode===n;
-    if(n.group==='center'){ dot(ctx,p[0],p[1],r*3.2,base,0.8); dot(ctx,p[0],p[1],r*1.6,white,1); }
-    else if(n.group==='category'){ dot(ctx,p[0],p[1],r*(hot?2.2:1.7),white,0.95); }
-    else { dot(ctx,p[0],p[1],r*(hot?2.4:1.8),base,1); } });
-  // Label nur beim Hover
-  if(hoverNode){ const p=W2S(hoverNode.x,hoverNode.y), txt=hoverNode.label;
-    ctx.font="600 13px -apple-system,'Segoe UI',sans-serif";
-    const w=ctx.measureText(txt).width, bx=p[0]-w/2-9, by=p[1]-hoverNode.r*cam.scale-34;
-    ctx.fillStyle='rgba(10,12,16,0.94)'; ctx.strokeStyle=hexA(base,0.7); ctx.lineWidth=1;
-    brainRoundRect(ctx,bx,by,w+18,25,7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,p[0],by+12.5); }
+// Stub functions for compatibility (now using Three.js)
+function buildBrain() { /* 3D scene already built */ }
+function brainStep() { /* Animation in render loop */ }
+
+// 3D Animation loop
+function animate3D(){
+  brainTime += 0.016;
+
+  // Global rotation around scene
+  const globalRot = brainTime * 0.0008;
+  scene.rotation.y = globalRot;
+
+  // Update stars (twinkle + rotate)
+  stars.forEach(s => {
+    s.obj.rotation.x += s.rotSpeedX;
+    s.obj.rotation.y += s.rotSpeedY;
+    const tw = Math.sin(brainTime * 1.2 + s.twinklePhase);
+    s.obj.scale.set(1+tw*0.3, 1+tw*0.3, 1+tw*0.3);
+  });
+
+  // Update pyramids (spin)
+  pyramids.forEach(p => {
+    p.obj.rotation.x += p.rotX;
+    p.obj.rotation.y += p.rotY;
+    p.obj.rotation.z += p.rotZ;
+  });
+
+  // Update rings (rotate around axes)
+  rings.forEach(r => {
+    r.obj.rotation.z += r.speed;
+  });
+
+  // Update nebula clouds (slow rotation)
+  nebulaClouds.forEach(n => {
+    n.obj.rotation.x += n.rotX * 0.1;
+    n.obj.rotation.y += n.rotY * 0.1;
+    n.obj.rotation.z += n.rotZ * 0.1;
+  });
+
+  // Glow sphere pulsing
+  glowSpheres.forEach(g => {
+    g.phase += 0.01;
+    g.scale = 1 + Math.sin(g.phase) * 0.15;
+    g.obj.scale.set(g.scale, g.scale, g.scale);
+  });
+
+  renderer.render(scene, camera);
 }
-function brainLoop(){ brainStep(); brainDraw(); brainAnim=requestAnimationFrame(brainLoop); }
 function stopBrain(){ if(brainAnim){ cancelAnimationFrame(brainAnim); brainAnim=null; } }
-function resizeBrain(){
-  if(!brainCanvas) return;
-  const rect=brainCanvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
-  brainW=rect.width; brainH=rect.height;
-  brainCanvas.width=Math.round(brainW*dpr); brainCanvas.height=Math.round(brainH*dpr);
-  brainCtx.setTransform(dpr,0,0,dpr,0,0);
-  cam.x=brainW/2; cam.y=brainH/2;
-}
-function brainPos(e){ const r=brainCanvas.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
-function brainNodeAtScreen(sx,sy){ const w=S2W(sx,sy);
-  for(let i=brainNodes.length-1;i>=0;i--){ const n=brainNodes[i], dx=w[0]-n.x, dy=w[1]-n.y, rr=n.r+7; if(dx*dx+dy*dy<=rr*rr) return n; } return null; }
-function initBrainEvents(){
-  if(brainCanvas._bound) return; brainCanvas._bound=true;
-  brainCanvas.addEventListener('mousedown', e=>{ const p=brainPos(e), n=brainNodeAtScreen(p[0],p[1]);
-    if(n && !n.fixed){ brainDrag=n; } else { panning=true; panStart=[p[0],p[1],cam.x,cam.y]; brainCanvas.style.cursor='grabbing'; } });
-  window.addEventListener('mousemove', e=>{ if(!brainAnim || !brainCanvas) return; const p=brainPos(e);
-    if(brainDrag){ const w=S2W(p[0],p[1]); brainDrag.x=w[0]; brainDrag.y=w[1]; brainDrag.vx=0; brainDrag.vy=0; }
-    else if(panning){ cam.x=panStart[2]+(p[0]-panStart[0]); cam.y=panStart[3]+(p[1]-panStart[1]); }
-    else { hoverNode=brainNodeAtScreen(p[0],p[1]); brainCanvas.style.cursor=hoverNode?'grab':'default'; } });
-  window.addEventListener('mouseup', ()=>{ brainDrag=null; panning=false; if(brainCanvas) brainCanvas.style.cursor=hoverNode?'grab':'default'; });
-  brainCanvas.addEventListener('wheel', e=>{ e.preventDefault(); const p=brainPos(e), w=S2W(p[0],p[1]);
-    cam.scale=Math.max(0.12,Math.min(6, cam.scale*(e.deltaY<0?1.12:0.89)));
-    cam.x=p[0]-w[0]*cam.scale; cam.y=p[1]-w[1]*cam.scale; }, {passive:false});
-  brainCanvas.addEventListener('dblclick', e=>{ const p=brainPos(e), n=brainNodeAtScreen(p[0],p[1]);
-    if(n && n.group==='fact' && confirm('Knoten „'+n.label+'" löschen?')) delFact(n.factIndex); });
-}
+
 function renderBrain(){
-  brainCanvas=document.getElementById('brainCanvas'); if(!brainCanvas) return;
-  brainCtx=brainCanvas.getContext('2d');
-  resizeBrain(); initBrainEvents();
-  if(!galaxy.dots.length) buildGalaxy();
-  buildBrain();
-  if(!brainAnim) brainLoop();
+  brainCanvas = document.getElementById('brainCanvas');
+  if(!brainCanvas || scene) return; // Only init once
+
+  // Three.js scene setup
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 100, 200);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas: brainCanvas });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0.1);
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+  const pointLight = new THREE.PointLight(0xffffff, 0.8);
+  pointLight.position.set(100, 100, 100);
+  scene.add(pointLight);
+
+  // Build 3D scene
+  build3DGalaxy();
+
+  // Start animation
+  if(!brainAnim) {
+    const loop = () => {
+      animate3D();
+      brainAnim = requestAnimationFrame(loop);
+    };
+    brainAnim = requestAnimationFrame(loop);
+  }
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    if(scene && renderer && camera){
+      const w = window.innerWidth, h = window.innerHeight;
+      camera.aspect = w/h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+  });
 }
 function addFactFromUI(){
   const cat=document.getElementById('factCat').value;
   const val=document.getElementById('factVal').value.trim();
   if(!val) return toast('Bitte eine Info eingeben');
   data.brain.push({ category:cat, value:val });
-  save(); document.getElementById('factVal').value=''; buildBrain(); toast('Zum Netzwerk hinzugefügt ✔');
+  save(); document.getElementById('factVal').value=''; toast('Zum Netzwerk hinzugefügt ✔');
 }
-function delFact(idx){ data.brain.splice(idx,1); save(); buildBrain(); }
+function delFact(idx){ data.brain.splice(idx,1); save(); }
 function toggleBrainFullscreen(){
   const st=document.getElementById('brainStage'); if(!st) return;
   st.classList.toggle('fs');
   if(!brainAnim) renderBrain();
-  setTimeout(()=>{ resizeBrain(); buildBrain(); }, 60);
+  setTimeout(()=>{ if(renderer){ const w=window.innerWidth, h=window.innerHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); } }, 60);
 }
-window.addEventListener('resize', () => { if(brainAnim) resizeBrain(); });
-window.addEventListener('keydown', (e) => { if(e.key==='Escape'){ const st=document.getElementById('brainStage'); if(st && st.classList.contains('fs')){ st.classList.remove('fs'); setTimeout(()=>{ resizeBrain(); buildBrain(); }, 60); } } });
+window.addEventListener('keydown', (e) => { if(e.key==='Escape'){ const st=document.getElementById('brainStage'); if(st && st.classList.contains('fs')){ st.classList.remove('fs'); if(renderer){ setTimeout(()=>{ const rect=st.getBoundingClientRect(); renderer.setSize(rect.width,rect.height); camera.aspect=rect.width/rect.height; camera.updateProjectionMatrix(); }, 60); } } } });
 
 // ---------------- Projekte ----------------
 const STATUS_BADGE = { 'Planung':'badge-blue', 'In Arbeit':'warn', 'Fast fertig':'badge-green', 'Abgeschlossen':'badge-green' };
