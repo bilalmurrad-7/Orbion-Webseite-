@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Dashboard — V-Service.bm</title>
+<meta name="theme-color" content="#0a0a0d">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dash-page">
+
+  <header class="nav is-stuck">
+    <div class="shell nav-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-dot"></span>
+        <span>V-Service<b>.bm</b></span>
+      </a>
+      <a href="index.html" class="dev-link">← zur Seite</a>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <div class="glow"></div>
+
+    <!-- Login -->
+    <div class="shell login-wrap" id="login-wrap">
+      <div class="card">
+        <h3>Entwickler-Login</h3>
+        <p class="sub">Nur für dich.</p>
+
+        <form id="login-form">
+          <div class="field">
+            <label for="password">Passwort</label>
+            <input type="password" id="password" autocomplete="current-password" required>
+            <span class="error" id="login-error">Falsches Passwort.</span>
+          </div>
+          <button type="submit" class="submit" id="login-btn">
+            <span class="btn-text">Einloggen</span>
+            <span class="btn-spinner"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Anfragen -->
+    <div class="shell" id="dash-wrap" hidden>
+      <div class="dash-header">
+        <div>
+          <h1>Anfragen</h1>
+          <p class="dash-count" id="count"></p>
+        </div>
+        <div class="dash-tools">
+          <div class="filters" role="group" aria-label="Anfragen filtern">
+            <button type="button" class="filter is-active" data-filter="alle">Alle</button>
+            <button type="button" class="filter" data-filter="offen">Offen</button>
+            <button type="button" class="filter" data-filter="erledigt">Erledigt</button>
+          </div>
+          <button type="button" class="icon-btn" id="refresh" title="Neu laden" aria-label="Neu laden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="list" id="list"></div>
+    </div>
+
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

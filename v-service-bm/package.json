@@ -1,0 +1,13 @@
+{
+  "name": "v-service-bm",
+  "version": "1.0.0",
+  "description": "V-Service.bm — Webseite mit Anfrage-Formular und Dashboard",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@netlify/blobs": "^11.0.3"
+  }
+}
